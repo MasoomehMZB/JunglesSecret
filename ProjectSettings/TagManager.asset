@@ -11,7 +11,7 @@ TagManager:
   - Waypoint
   - Water
   - UI
-  - 
+  - Special
   - 
   - 
   - 
@@ -43,6 +43,9 @@ TagManager:
     locked: 0
   - name: Floor
     uniqueID: 4245582883
+    locked: 0
+  - name: Chest
+    uniqueID: 3793574537
     locked: 0
   - name: Player
     uniqueID: 213390233

@@ -13,9 +13,10 @@ public enum DirectionName
 }
 public class Waypoint : MonoBehaviour
 {
-    private List<Vector2Int> allowedDirVectors;  // Set in Inspector (e.g. [left, right])
-    public GameObject choiceUIPrefab;     // A prefab with buttons for direction choices
+    private List<Vector2Int> allowedDirVectors;  
+    public GameObject choiceUIPrefab;     
     private GameObject currentUI;
+    public bool IsDeadEnd = false;
 
     public List<DirectionName> allowedDirections;
     private HashSet<Vector2Int> allowedDirSet;
@@ -23,8 +24,7 @@ public class Waypoint : MonoBehaviour
     void Awake()
     {
         // Convert enum list to Vector2Int list on load
-        allowedDirVectors = allowedDirections.Select(d => DirectionUtils.ToVector(d)).ToList();
-        allowedDirSet = new HashSet<Vector2Int>(allowedDirVectors);
+        SetAllowedDirections(allowedDirections);
     }
 
 
@@ -36,7 +36,13 @@ public class Waypoint : MonoBehaviour
             return;
         }
 
-        if (allowedDirSet.Count == 2)
+        if (IsDeadEnd) {
+            var autoDir = allowedDirSet.First();
+            onDirectionChosen(autoDir);
+            return;
+        }
+
+        if (allowedDirSet.Count == 2 && currentDir != Vector2Int.zero)
         {
             var autoDir = allowedDirSet.First(d => d != -currentDir);
             onDirectionChosen(autoDir);
@@ -69,6 +75,31 @@ public class Waypoint : MonoBehaviour
                 btn.gameObject.SetActive(false);
             }
         }
+    }
+
+    void OnDrawGizmos()
+    {
+        // Get the renderer component of this GameObject
+        Renderer renderer = GetComponent<Renderer>();
+
+        if (renderer != null)
+        {
+            // Get the bounds of the renderer
+            Bounds bounds = renderer.bounds;
+
+            // Set Gizmo color
+            Gizmos.color = Color.yellow;
+
+            // Draw a wire cube representing the bounds
+            Gizmos.DrawWireCube(bounds.center, bounds.size);
+        }
+    }
+
+    public void SetAllowedDirections(List<DirectionName> directions)
+    {
+        allowedDirections = directions;
+        allowedDirVectors = allowedDirections.Select(d => DirectionUtils.ToVector(d)).ToList();
+        allowedDirSet = new HashSet<Vector2Int>(allowedDirVectors);
     }
 
 }
