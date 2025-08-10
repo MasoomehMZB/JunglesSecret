@@ -15,18 +15,15 @@ public class Player : MonoBehaviour
 
     private Waypoint currentWaypoint;
     private bool isMoving = false;
-    [SerializeField] private int requestedSteps = 0;
+    private int requestedSteps = 0;
     private Chest lastChestTile = null;
     private bool OnKeyTile = false;
-
-    public int steps = 0;
 
 
     public int points = 0;
 
     // Call this from external systems like dice roll
-    //public void RequestMove(int steps)
-    public void RequestMove()
+    public void RequestMove(int steps)
     {
         if (!isMoving)
         {
@@ -40,28 +37,27 @@ public class Player : MonoBehaviour
     }
 
     //del
-    void Start()
-    {
-        StartCoroutine(TestMoveSequence());
-    }
+    //void Start()
+    //{
+    //    StartCoroutine(TestMoveSequence());
+    //}
 
-    IEnumerator TestMoveSequence()
-    {
-        steps = 2;
-        RequestMove();
+    //IEnumerator TestMoveSequence()
+    //{
+    //    RequestMove(2);
 
-        // Wait until the player is no longer moving
-        yield return new WaitUntil(() => !isMoving);
-        //yield return new WaitForSeconds(3);
+    //    // Wait until the player is no longer moving
+    //    yield return new WaitUntil(() => !isMoving);
+    //    //yield return new WaitForSeconds(3);
 
-        //steps = 1;
-        //RequestMove();
+    //    //steps = 1;
+    //    //RequestMove();
 
-        //yield return new WaitUntil(() => !isMoving);
+    //    //yield return new WaitUntil(() => !isMoving);
 
-        //steps = 7;
-        //RequestMove();
-    }
+    //    //steps = 7;
+    //    //RequestMove();
+    //}
 
     IEnumerator MoveRoutine()
     {
@@ -120,7 +116,7 @@ public class Player : MonoBehaviour
                 Debug.Log("detected");
                 yield return new WaitForSeconds(0.09f);
 
-                RequestMove();
+                RequestMove(previousSteps);
                 yield break;
             }
 
@@ -130,6 +126,8 @@ public class Player : MonoBehaviour
         CheckSpecialTile();
         currentDir = Vector2Int.zero;
         isMoving = false;
+
+        GameManager.Instance.EndTurn();
     }
 
     private void RevertToPreviousState(Vector3 previousPos, int previousSteps)

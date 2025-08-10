@@ -7,8 +7,12 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    //private List<Player> players = new List<Player>(); // Add all players here
-    //private int currentPlayerTurn = 0;
+    private List<Player> players = new List<Player>(); // Add all players
+    public Transform PlayerParent;
+    private int currentPlayerIndex = 0;
+
+    public Dice dice;
+
     private Player currentGuesser;
 
     [SerializeField] private Cards cards;
@@ -120,6 +124,14 @@ public class GameManager : MonoBehaviour
         cards.RevealCard();
 
         Debug.Log($"GameManager.SetupBoard() - Assigned {assignCount} symbol(s) to trees.");
+
+        // get players
+
+        players.Clear();
+        players = PlayerParent.GetComponentsInChildren<Player>().ToList();
+
+        StartTurn();
+
     }
 
     // Helper: randomness using UnityEngine.Random (non-deterministic)
@@ -164,6 +176,7 @@ public class GameManager : MonoBehaviour
         }
         else
         {
+            currentGuesser.transform.position = SpawnArea.transform.position;
             Debug.Log($"{currentGuesser.name} guessed wrong!");
         }
 
@@ -186,6 +199,38 @@ public class GameManager : MonoBehaviour
     {
         // Add to player's score
         // Remove card from deck
+    }
+
+    //-----------------------------------------------------------------------------------
+
+    public void StartTurn()
+    {
+        Player currentPlayer = players[currentPlayerIndex];
+        Debug.Log($"--- {currentPlayer.name}'s Turn ---");
+
+        (int die1, int die2) = dice.Roll();
+
+        if (dice.IsDouble())
+        {
+            Debug.Log("Double rolled! Teleport mode activated.");
+            EnableTeleportMode(currentPlayer);
+        }
+        else
+        {
+            int steps = dice.Total();
+            currentPlayer.RequestMove(steps);
+        }
+    }
+
+    public void EndTurn()
+    {
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
+        StartTurn();
+    }
+
+    private void EnableTeleportMode(Player player)
+    {
+        // Placeholder until teleport UI is added
     }
 
 }
