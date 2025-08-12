@@ -6,9 +6,7 @@ public class Chest : MonoBehaviour
     public Sprite symbolSprite;     // Visual symbol for the tree
     public SpriteRenderer displayRenderer; // The renderer that shows the symbol
 
-    public GameObject highlightBorder;
-
-    private static bool guessModeActive = false;
+    [SerializeField] private GameObject highlightBorder;
 
     private Vector3 originalScale;
 
@@ -44,19 +42,19 @@ public class Chest : MonoBehaviour
     public void HideSymbol()
     {
         displayRenderer.sprite = null; // Just hide it completely
+        Debug.Log($"in HideSymbol");
     }
 
 
-    public static void EnableGuessMode()
+    public static void EnableHighlight(bool choice)
     {
-        guessModeActive = true;
         foreach (Chest chest in FindObjectsOfType<Chest>())
         {
-            chest.SetHighlight(true);
+            chest.SetHighlight(choice);
         }
     }
 
-    private void SetHighlight(bool state)
+    public void SetHighlight(bool state)
     {
         if (state) { 
             transform.localScale = originalScale * 1.3f; // enlarge
@@ -71,23 +69,16 @@ public class Chest : MonoBehaviour
     }
 
 
-
-    public static void DisableGuessMode()
+    private void OnMouseDown()
     {
-        guessModeActive = false;
-        foreach (Chest chest in FindObjectsOfType<Chest>())
+        if (GameManager.Instance.GuessModeActive)
         {
-            chest.SetHighlight(false);
+            Debug.Log("chess guess clickeed");
+            StartCoroutine(GameManager.Instance.GuessChest(this));
         }
-
-    }
-
-    private void OnMouseDown() // Works with mouse or screen tap
-    {
-        if (guessModeActive)
+        else if (GameManager.Instance.TeleportModeActive)
         {
-            GameManager.Instance.GuessChest(this);
-            this.RevealChosenSymbol();
+            GameManager.Instance.TeleportTo(gameObject);
         }
     }
 

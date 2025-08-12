@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -12,8 +13,10 @@ public class GameManager : MonoBehaviour
     private int currentPlayerIndex = 0;
 
     public Dice dice;
+    public Key key;
 
     private Player currentGuesser;
+    private Player currentPlayer;
 
     [SerializeField] private Cards cards;
 
@@ -42,7 +45,6 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         SetupBoard();
-        // ... other startup logic (deck setup etc) goes after this
     }
 
     public void SetupBoard()
@@ -153,25 +155,25 @@ public class GameManager : MonoBehaviour
     // Called when player lands on the Key tile
     public void StartGuessMode(Player player)
     {
+        GuessModeActive = true;
         currentGuesser = player;
-        Chest.EnableGuessMode(); // Allow chest selection
+        Chest.EnableHighlight(true); // Allow chest selection
         Debug.Log($"{player.name} is guessing for symbol: {GetCurrentCardSymbol()}");
     }
 
     // Called when player chooses a chest
-    public void GuessChest(Chest chosenChest)
+    public IEnumerator GuessChest(Chest chosenChest)
     {
-        if (currentGuesser == null)
-        {
-            Debug.LogWarning("No player is in guess mode.");
-            return;
-        }
+        // Show the symbol they picked
+        chosenChest.RevealChosenSymbol();
+
+        // Wait for 1.5 seconds so player can see it
+        
 
         // Check if guess matches
         if (chosenChest.symbolID == GetCurrentCardSymbol())
         {
             Debug.Log($"{currentGuesser.name} guessed correctly!");
-            // Award card to currentGuesser
             TryClaimCard(currentGuesser, chosenChest);
         }
         else
@@ -179,15 +181,19 @@ public class GameManager : MonoBehaviour
             currentGuesser.transform.position = SpawnArea.transform.position;
             Debug.Log($"{currentGuesser.name} guessed wrong!");
         }
+        yield return new WaitForSeconds(1.5f);
+        // Hide symbol after result
+        chosenChest.HideSymbol();
 
-        // End guessing
+        // End guess mode
         StopGuessMode();
     }
 
     public void StopGuessMode()
     {
+        GuessModeActive = false;
         currentGuesser = null;
-        Chest.DisableGuessMode();
+        Chest.EnableHighlight(false);
     }
 
     private string GetCurrentCardSymbol()
@@ -202,24 +208,37 @@ public class GameManager : MonoBehaviour
     }
 
     //-----------------------------------------------------------------------------------
+    private bool waitingForMovementChoice = false;
+    public bool TeleportModeActive { get; private set; } = false;
+    public bool GuessModeActive { get; private set; } = false;
 
     public void StartTurn()
-    {
-        Player currentPlayer = players[currentPlayerIndex];
+    {   
+        waitingForMovementChoice = true;
+        currentPlayer = players[currentPlayerIndex];
         Debug.Log($"--- {currentPlayer.name}'s Turn ---");
 
-        (int die1, int die2) = dice.Roll();
+        dice.Roll();
 
         if (dice.IsDouble())
         {
             Debug.Log("Double rolled! Teleport mode activated.");
-            EnableTeleportMode(currentPlayer);
+            EnableTeleportMode();
         }
-        else
-        {
-            int steps = dice.Total();
-            currentPlayer.RequestMove(steps);
-        }
+    }
+    public void HandleDiceChoice(int chosenSteps)
+    {
+
+        Debug.Log("in hab=ndle dice choice1.");
+        if (!waitingForMovementChoice) return;
+
+        if (TeleportModeActive) DisableTeleportMode();
+
+        Player currentPlayer = players[currentPlayerIndex];
+        Debug.Log($"{currentPlayer.name} chose {chosenSteps} steps");
+
+        waitingForMovementChoice = false;
+        currentPlayer.RequestMove(chosenSteps);
     }
 
     public void EndTurn()
@@ -227,10 +246,46 @@ public class GameManager : MonoBehaviour
         currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
         StartTurn();
     }
+   // -------------------------------------------------------------------------------------------------
 
-    private void EnableTeleportMode(Player player)
+    public void TeleportTo(GameObject target)
     {
-        // Placeholder until teleport UI is added
+        DisableTeleportMode();
+        if (currentPlayer == null)
+        {
+            Debug.LogWarning("Teleport attempted without a current player.");
+            return;
+        }
+
+        // Align player bottom to tile center
+        Vector3 bottomCenter = currentPlayer.GetPlayerBottomCenter();
+        Vector3 offset = currentPlayer.transform.position - bottomCenter;
+        currentPlayer.transform.position = target.transform.position + offset;
+
+        currentPlayer.RequestMove(0);
+        
+    }
+    public void EnableTeleportMode()
+    {
+        TeleportModeActive = true;
+        Chest.EnableHighlight(true);
+
+        if (key != null)
+            key.SetHighlight(true);
+
+        Debug.Log($"is in teleport mode — choose a destination.");
+    }
+
+    public void DisableTeleportMode()
+    {
+        TeleportModeActive = false;
+
+        Chest.EnableHighlight(false);
+
+        if (key != null)
+            key.SetHighlight(false);
+
+        waitingForMovementChoice = false;
     }
 
 }

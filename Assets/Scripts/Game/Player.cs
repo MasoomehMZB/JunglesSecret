@@ -63,69 +63,80 @@ public class Player : MonoBehaviour
     {
         if (requestedSteps > 0)
         {
-            ExitKeyTile();
-        }
+            if (OnKeyTile)
+                ExitKeyTile();
 
-        isMoving = true;
-        bool isDeadEnd = false;
-        Vector3 previousPos = transform.position;
-        int previousSteps = requestedSteps;
+            isMoving = true;
+            bool isDeadEnd = false;
+            Vector3 previousPos = transform.position;
+            int previousSteps = requestedSteps;
 
-        ExitChestTile();
+            ExitChestTile();
 
-        // Get the first direction :
-        // On the waypoint
-        yield return StartCoroutine(CollidewithWaypoint((bool result) =>
-        {
-            isDeadEnd = result;
-
-        }));
-
-        // Off the waypoint
-        if (currentDir == Vector2Int.zero)
-        {
-            yield return HandleTempWaypoint();
-        }
-
-        while (requestedSteps > 0)
-        {
-            Vector3 startPos = transform.position;
-            Vector3 targetPos = startPos + new Vector3(currentDir.x * stepAmount, currentDir.y * stepAmount, 0f);
-
-            float distance = Vector3.Distance(startPos, targetPos);
-            float duration = distance / speed;
-            float elapsed = 0f;
-
-            while (elapsed < duration)
-            {
-                transform.position = Vector3.Lerp(startPos, targetPos, elapsed / duration);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-
-            transform.position = targetPos;
-
+            // Get the first direction :
+            // On the waypoint
             yield return StartCoroutine(CollidewithWaypoint((bool result) =>
             {
                 isDeadEnd = result;
+
             }));
 
-            if (isDeadEnd && requestedSteps == 0)
+            // Off the waypoint
+            if (currentDir == Vector2Int.zero)
             {
-                RevertToPreviousState(previousPos, previousSteps);
-                Debug.Log("detected");
-                yield return new WaitForSeconds(0.09f);
-
-                RequestMove(previousSteps);
-                yield break;
+                yield return HandleTempWaypoint();
             }
 
-            requestedSteps--;
+            while (requestedSteps > 0)
+            {
+                Vector3 startPos = transform.position;
+                Vector3 targetPos = startPos + new Vector3(currentDir.x * stepAmount, currentDir.y * stepAmount, 0f);
+
+                float distance = Vector3.Distance(startPos, targetPos);
+                float duration = distance / speed;
+                float elapsed = 0f;
+
+                while (elapsed < duration)
+                {
+                    transform.position = Vector3.Lerp(startPos, targetPos, elapsed / duration);
+                    elapsed += Time.deltaTime;
+                    yield return null;
+                }
+
+                transform.position = targetPos;
+
+                requestedSteps--;
+
+                if (requestedSteps == 0) continue;
+
+                yield return StartCoroutine(CollidewithWaypoint((bool result) =>
+                {
+                    isDeadEnd = result;
+                }));
+
+                if (isDeadEnd && requestedSteps >= 0)
+                {
+                    RevertToPreviousState(previousPos, previousSteps);
+                    Debug.Log("detected");
+                    yield return new WaitForSeconds(0.09f);
+
+                    RequestMove(previousSteps);
+                    yield break;
+                }
+
+                
+            }
         }
 
         CheckSpecialTile();
         currentDir = Vector2Int.zero;
         isMoving = false;
+
+        
+
+        yield return new WaitUntil(() => !GameManager.Instance.GuessModeActive);
+
+        Debug.Log("end turn");
 
         GameManager.Instance.EndTurn();
     }
@@ -199,7 +210,7 @@ public class Player : MonoBehaviour
         }
     }
 
-    Vector3 GetPlayerBottomCenter()
+    public Vector3 GetPlayerBottomCenter()
     {
         BoxCollider2D playerCollider = GetComponent<BoxCollider2D>();
         Vector3 bottomCenter = playerCollider.bounds.center - new Vector3(0, playerCollider.bounds.extents.y, 0);
@@ -237,9 +248,9 @@ public class Player : MonoBehaviour
         GameObject tempGO = Instantiate(waypointPrefab, bottomCenter, Quaternion.identity);
         Waypoint tempWaypoint = tempGO.GetComponent<Waypoint>();
 
-        List<DirectionName> dirOptions = (lastDir == Vector2Int.right || lastDir == Vector2Int.left)
-            ? new List<DirectionName> { DirectionName.Left, DirectionName.Right }
-            : new List<DirectionName> { DirectionName.Up, DirectionName.Down };
+        List<DirectionName> dirOptions = (lastDir == Vector2Int.up || lastDir == Vector2Int.down)
+            ? new List<DirectionName> { DirectionName.Up, DirectionName.Down } 
+            :new List<DirectionName> { DirectionName.Left, DirectionName.Right };
 
         tempWaypoint.SetAllowedDirections(dirOptions);
 
