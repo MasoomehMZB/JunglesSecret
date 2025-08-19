@@ -4,11 +4,11 @@ public class Chest : MonoBehaviour
 {
     public string symbolID;         // Unique ID like "apple", "sun", "bird"
     public Sprite symbolSprite;     // Visual symbol for the tree
-    public SpriteRenderer displayRenderer; // The renderer that shows the symbol
 
+    [SerializeField] private SpriteRenderer displayRenderer; // The renderer that shows the symbol
     [SerializeField] private GameObject highlightBorder;
 
-    private Vector3 originalScale;
+    Vector3 originalScale;
 
     private void Awake()
     {
@@ -28,21 +28,12 @@ public class Chest : MonoBehaviour
 
     void RevealSymbolTo(Player player)
     {
-
-        // Show the symbol on the tile visually
         displayRenderer.sprite = symbolSprite;
-
-        // Optional: trigger a popup UI for the player
-        Debug.Log($"Player landed on tree with symbol: {symbolID}");
-
-        // You could call something like:
-        // UIManager.Instance.ShowSymbol(symbolSprite);
     }
 
     public void HideSymbol()
     {
         displayRenderer.sprite = null; // Just hide it completely
-        Debug.Log($"in HideSymbol");
     }
 
 
@@ -73,7 +64,6 @@ public class Chest : MonoBehaviour
     {
         if (GameManager.Instance.GuessModeActive)
         {
-            Debug.Log("chess guess clickeed");
             StartCoroutine(GameManager.Instance.GuessChest(this));
         }
         else if (GameManager.Instance.TeleportModeActive)

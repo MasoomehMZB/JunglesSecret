@@ -7,7 +7,7 @@ using System;
 public class DirectionArrow : MonoBehaviour
 {
     public Vector2Int direction;  // Set in Inspector or dynamically
-    private Button button;
+    Button button;
 
     void Awake()
     {

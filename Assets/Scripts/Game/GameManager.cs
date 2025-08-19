@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -27,6 +28,8 @@ public class GameManager : MonoBehaviour
 
     public List<SymbolDef> symbolDefs = new List<SymbolDef>();
     private Dictionary<string, Chest> symbolToChest = new Dictionary<string, Chest>();
+    public bool GameOver { get; private set; } = false;
+
 
     //test
     [SerializeField] private GameObject playerPrefab; // assign in Inspector
@@ -35,13 +38,14 @@ public class GameManager : MonoBehaviour
 
     [SerializeField]
     private Color[] playerColors =
-{
+    {
     Color.red,
     Color.blue,
     Color.green,
     Color.yellow
-};
+    };
 
+    
     void createTestPlayers()
     {
         for (int i = 0; i < testPlayerCount; i++)
@@ -62,7 +66,6 @@ public class GameManager : MonoBehaviour
                 }
 
                 players.Add(player);
-                Debug.LogError( $"TestPlayer_{i + 1}");
             }
             else
             {
@@ -70,8 +73,6 @@ public class GameManager : MonoBehaviour
             }
         }
     }
-
-
 
 
     [Serializable]
@@ -173,8 +174,6 @@ public class GameManager : MonoBehaviour
         // card deck setup
         cards.RevealCard();
 
-        Debug.Log($"GameManager.SetupBoard() - Assigned {assignCount} symbol(s) to trees.");
-
         // get players
         createTestPlayers();
 
@@ -213,7 +212,6 @@ public class GameManager : MonoBehaviour
         GuessModeActive = true;
         currentGuesser = player;
         Chest.EnableHighlight(true); // Allow chest selection
-        Debug.Log($"{player.name} is guessing for symbol: {GetCurrentCardSymbol()}");
     }
 
     // Called when player chooses a chest
@@ -270,7 +268,8 @@ public class GameManager : MonoBehaviour
 
 
     public void StartTurn()
-    {   
+    {
+        if (GameOver) return;
         waitingForMovementChoice = true;
         currentPlayer = players[currentPlayerIndex];
         Debug.Log($"--- {currentPlayer.name}'s Turn ---");
@@ -286,7 +285,7 @@ public class GameManager : MonoBehaviour
     public void HandleDiceChoice(int chosenSteps)
     {
 
-        Debug.Log("in hab=ndle dice choice1.");
+        Debug.Log("in handle dice choice1.");
         if (!waitingForMovementChoice) return;
 
         if (TeleportModeActive) DisableTeleportMode();
@@ -307,7 +306,6 @@ public class GameManager : MonoBehaviour
 
     public void TeleportTo(GameObject target)
     {
-        DisableTeleportMode();
         if (currentPlayer == null)
         {
             Debug.LogWarning("Teleport attempted without a current player.");
@@ -320,6 +318,7 @@ public class GameManager : MonoBehaviour
         currentPlayer.transform.position = target.transform.position + offset;
 
         currentPlayer.RequestMove(0);
+        DisableTeleportMode();
         
     }
     public void EnableTeleportMode()
@@ -350,5 +349,22 @@ public class GameManager : MonoBehaviour
         Debug.Log($"{player.name} was punished! Sent back to start.");
         player.transform.position = SpawnArea.Instance.GetSpawnPosition(playerIndex);
         player.InSpawnArea = true;
+    }
+
+    public void EndGame()
+    {
+        GameOver = true;
+        Debug.Log("Game Over!");
+
+        int maxScore = players.Max(p => p.cardsWon);
+        List<Player> winners = players.Where(p => p.cardsWon == maxScore).ToList();
+
+        foreach (Player winner in winners)
+        {
+            Debug.Log($" Winner: {winner.name} with {winner.cardsWon} points");
+        }
+
+       // ShowEndGameUI(winners);
+
     }
 }

@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class Key : MonoBehaviour
 {
-    public GameObject highlightBorder;
-    private Vector3 originalScale;
+    [SerializeField] private GameObject highlightBorder;
+     Vector3 originalScale;
 
     private void Awake()
     {
@@ -16,7 +16,6 @@ public class Key : MonoBehaviour
 
     private void OnMouseDown()
     {
-        Debug.Log("Click from key");
         if (GameManager.Instance.TeleportModeActive)
         {
             GameManager.Instance.TeleportTo(gameObject);

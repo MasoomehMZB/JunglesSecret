@@ -95,6 +95,7 @@ public class Waypoint : MonoBehaviour
         }
     }
 
+
     public void SetAllowedDirections(List<DirectionName> directions)
     {
         allowedDirections = directions;

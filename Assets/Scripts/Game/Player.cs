@@ -2,28 +2,31 @@
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 
 
 public class Player : MonoBehaviour
 {
+    // Movement variables
     [SerializeField] private Vector2Int currentDir = Vector2Int.zero;
     [SerializeField] private Vector2Int lastDir = Vector2Int.zero;
     [SerializeField] private float speed = 1f;
     [SerializeField] private float stepAmount = 0.54f;
     [SerializeField] private GameObject waypointPrefab;
-
     private Waypoint currentWaypoint;
-    private bool isMoving = false;
+
     private int requestedSteps = 0;
     private Chest lastChestTile = null;
-    private bool OnKeyTile = false;
+   
+    // Flags
     public bool InSpawnArea = true;
+    private bool OnKeyTile = false;
+    private bool isMoving = false;
 
-    //[SerializeField] private Transform firstwaypoint;
-
+    // Scores
     public int cardsWon = 0;
 
-    // Call this from external systems like dice roll
+
     public void RequestMove(int steps)
     {
         if (!isMoving)
@@ -37,56 +40,34 @@ public class Player : MonoBehaviour
         }
     }
 
-    //del
-    //void Start()
-    //{
-    //    StartCoroutine(TestMoveSequence());
-    //}
-
-    //IEnumerator TestMoveSequence()
-    //{
-    //    RequestMove(2);
-
-    //    // Wait until the player is no longer moving
-    //    yield return new WaitUntil(() => !isMoving);
-    //    //yield return new WaitForSeconds(3);
-
-    //    //steps = 1;
-    //    //RequestMove();
-
-    //    //yield return new WaitUntil(() => !isMoving);
-
-    //    //steps = 7;
-    //    //RequestMove();
-    //}
-
     IEnumerator MoveRoutine()
     {
+        // Not in Teleport mode | Not Skipped turn
         if (requestedSteps > 0)
-        {
-            if (InSpawnArea)
-            {
-                Vector3 bottomCenter = GetPlayerBottomCenter();
-                Vector3 offset = transform.position - bottomCenter;
-
-                transform.position = GameManager.Instance.firstTile.transform.position + offset;
-                InSpawnArea = false;
-            }
-
-            if (OnKeyTile)
-                ExitKeyTile();
-
+        {   
             isMoving = true;
             bool isDeadEnd = false;
             Vector3 previousPos = transform.position;
             int previousSteps = requestedSteps;
 
-            ExitChestTile();
+            if (InSpawnArea)
+            {
+                Vector3 bottomCenter = GetPlayerBottomCenter();
+                Vector3 offset = transform.position - bottomCenter;
+                transform.position = GameManager.Instance.firstTile.transform.position + offset;
+                
+                Physics2D.SyncTransforms();
+                yield return null;
+            }
 
+            if (OnKeyTile) ExitKeyTile();
+            ExitChestTile();
+            
             // Get the first direction :
             // On the waypoint
             yield return StartCoroutine(CollidewithWaypoint((bool result) =>
             {
+
                 isDeadEnd = result;
 
             }));
@@ -97,6 +78,7 @@ public class Player : MonoBehaviour
                 yield return HandleTempWaypoint();
             }
 
+            // --Movement--
             while (requestedSteps > 0)
             {
                 Vector3 startPos = transform.position;
@@ -124,10 +106,10 @@ public class Player : MonoBehaviour
                     isDeadEnd = result;
                 }));
 
+                // Handle dead end
                 if (isDeadEnd && requestedSteps >= 0)
                 {
                     RevertToPreviousState(previousPos, previousSteps);
-                    Debug.Log("detected");
                     yield return new WaitForSeconds(0.09f);
 
                     RequestMove(previousSteps);
@@ -138,17 +120,24 @@ public class Player : MonoBehaviour
             }
         }
 
-        // For teleports
-        ExitChestTile();
+        // For after teleports
+        if (GameManager.Instance.TeleportModeActive)
+        {
+            InSpawnArea = false;
+            Debug.Log($"current waypoint = {currentWaypoint}");
+            ExitChestTile();
+        }
 
+        // Wait a frame for collider position to update
+        yield return null;
         HitAnotherPlayer();
 
         CheckSpecialTile();
 
+        yield return new WaitUntil(() => !GameManager.Instance.GuessModeActive);
+
         currentDir = Vector2Int.zero;
         isMoving = false;
-
-        yield return new WaitUntil(() => !GameManager.Instance.GuessModeActive);
 
         Debug.Log("end turn");
 
@@ -203,17 +192,19 @@ public class Player : MonoBehaviour
 
     void CheckSpecialTile()
     {
-
-        Collider2D hit = Physics2D.OverlapCircle(transform.position, 0.1f, LayerMask.GetMask("Special"));
+        Vector3 bottomCenter = GetPlayerBottomCenter();
+        Collider2D hit = Physics2D.OverlapCircle(bottomCenter, 0.2f, LayerMask.GetMask("Special"));
         if (hit)
         {
             if (hit.TryGetComponent<Chest>(out Chest chest))
             {
+                Debug.Log($"{name} landed on chest {chest.symbolID}");
                 chest.OnPlayerLanded(this);
                 lastChestTile = chest;
             }
             else if (hit.TryGetComponent<Key>(out Key key))
             {
+                Debug.Log($"{name} landed on KEY");
                 OnKeyTile = true;
                 key.OnPlayerLanded(this);
             }
@@ -236,13 +227,12 @@ public class Player : MonoBehaviour
         Vector3 bottomCenter = GetPlayerBottomCenter();
         Vector3 offset = transform.position - bottomCenter;
 
-        Collider2D wpCollider = Physics2D.OverlapCircle(bottomCenter, 0.15f, LayerMask.GetMask("Waypoint"));
+        Collider2D wpCollider = Physics2D.OverlapCircle(bottomCenter, 0.2f, LayerMask.GetMask("Waypoint"));
         if (wpCollider != null)
         {
             currentWaypoint = wpCollider.GetComponent<Waypoint>();
             if (currentWaypoint != null)
             {
-                Debug.Log($"wp = {currentWaypoint.name}");
                 transform.position = currentWaypoint.transform.position + offset;
 
                 bool isDeadEnd = currentWaypoint.IsDeadEnd;
@@ -277,16 +267,24 @@ public class Player : MonoBehaviour
 
     void HitAnotherPlayer()
     {
-        if (InSpawnArea)
-        {
-            return;
-        }
-        BoxCollider2D playerCollider = GetComponent<BoxCollider2D>();
-        Collider2D opponentCollider = Physics2D.OverlapCircle(playerCollider.transform.position, 0.2f, LayerMask.GetMask("Player"));
+        if (InSpawnArea) return;
 
-        if (opponentCollider != null && opponentCollider.gameObject != gameObject)
+        Debug.Log("In hit");
+
+        // Get all colliders in range on "Player" layer
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(
+            transform.position,
+            0.4f,
+            LayerMask.GetMask("Player")
+        );
+
+        foreach (Collider2D col in colliders)
         {
-            Player opponent = opponentCollider.GetComponent<Player>();
+            if (col == null) continue; // safety check
+
+            if (col.gameObject == gameObject) continue; // skip self
+
+            Player opponent = col.GetComponent<Player>();
             if (opponent != null)
             {
                 Debug.Log($"Player {gameObject.name} hit {opponent.gameObject.name}");
@@ -294,4 +292,6 @@ public class Player : MonoBehaviour
             }
         }
     }
+
+
 }

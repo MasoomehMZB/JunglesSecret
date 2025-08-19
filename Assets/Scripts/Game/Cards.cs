@@ -17,7 +17,7 @@ public class Cards : MonoBehaviour
         if (cardDeck.Count == 0)
         {
             Debug.Log("No more cards left.");
-           // GameManager.Instance.EndGame(); // Trigger end game
+            GameManager.Instance.EndGame(); // Trigger end game
             return;
         }
 

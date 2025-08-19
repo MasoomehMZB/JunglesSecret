@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7980111329954160804}
   - component: {fileID: 7980111329954160802}
   - component: {fileID: 7980111329954160801}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -104,7 +104,6 @@ MonoBehaviour:
   stepAmount: 0.59
   waypointPrefab: {fileID: 5799169672712151345, guid: 0feb6c8c9f174f246a7c598ec2e251c1, type: 3}
   InSpawnArea: 1
-  firstwaypoint: {fileID: 0}
   cardsWon: 0
 --- !u!61 &7980111329954160801
 BoxCollider2D:
