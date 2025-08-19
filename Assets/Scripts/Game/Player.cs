@@ -12,15 +12,16 @@ public class Player : MonoBehaviour
     [SerializeField] private float stepAmount = 0.54f;
     [SerializeField] private GameObject waypointPrefab;
 
-
     private Waypoint currentWaypoint;
     private bool isMoving = false;
     private int requestedSteps = 0;
     private Chest lastChestTile = null;
     private bool OnKeyTile = false;
+    public bool InSpawnArea = true;
 
+    //[SerializeField] private Transform firstwaypoint;
 
-    public int points = 0;
+    public int cardsWon = 0;
 
     // Call this from external systems like dice roll
     public void RequestMove(int steps)
@@ -63,6 +64,15 @@ public class Player : MonoBehaviour
     {
         if (requestedSteps > 0)
         {
+            if (InSpawnArea)
+            {
+                Vector3 bottomCenter = GetPlayerBottomCenter();
+                Vector3 offset = transform.position - bottomCenter;
+
+                transform.position = GameManager.Instance.firstTile.transform.position + offset;
+                InSpawnArea = false;
+            }
+
             if (OnKeyTile)
                 ExitKeyTile();
 
@@ -128,11 +138,15 @@ public class Player : MonoBehaviour
             }
         }
 
+        // For teleports
+        ExitChestTile();
+
+        HitAnotherPlayer();
+
         CheckSpecialTile();
+
         currentDir = Vector2Int.zero;
         isMoving = false;
-
-        
 
         yield return new WaitUntil(() => !GameManager.Instance.GuessModeActive);
 
@@ -228,6 +242,7 @@ public class Player : MonoBehaviour
             currentWaypoint = wpCollider.GetComponent<Waypoint>();
             if (currentWaypoint != null)
             {
+                Debug.Log($"wp = {currentWaypoint.name}");
                 transform.position = currentWaypoint.transform.position + offset;
 
                 bool isDeadEnd = currentWaypoint.IsDeadEnd;
@@ -258,5 +273,25 @@ public class Player : MonoBehaviour
 
         Destroy(tempGO);
 
+    }
+
+    void HitAnotherPlayer()
+    {
+        if (InSpawnArea)
+        {
+            return;
+        }
+        BoxCollider2D playerCollider = GetComponent<BoxCollider2D>();
+        Collider2D opponentCollider = Physics2D.OverlapCircle(playerCollider.transform.position, 0.2f, LayerMask.GetMask("Player"));
+
+        if (opponentCollider != null && opponentCollider.gameObject != gameObject)
+        {
+            Player opponent = opponentCollider.GetComponent<Player>();
+            if (opponent != null)
+            {
+                Debug.Log($"Player {gameObject.name} hit {opponent.gameObject.name}");
+                GameManager.Instance.PunishPlayer(opponent);
+            }
+        }
     }
 }

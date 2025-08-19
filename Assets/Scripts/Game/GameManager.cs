@@ -15,6 +15,8 @@ public class GameManager : MonoBehaviour
     public Dice dice;
     public Key key;
 
+    public Transform firstTile; 
+
     private Player currentGuesser;
     private Player currentPlayer;
 
@@ -26,7 +28,50 @@ public class GameManager : MonoBehaviour
     public List<SymbolDef> symbolDefs = new List<SymbolDef>();
     private Dictionary<string, Chest> symbolToChest = new Dictionary<string, Chest>();
 
-    public GameObject SpawnArea;
+    //test
+    [SerializeField] private GameObject playerPrefab; // assign in Inspector
+    [SerializeField] private int testPlayerCount = 2;
+    public SpriteRenderer spriteRenderer; // assign in prefab
+
+    [SerializeField]
+    private Color[] playerColors =
+{
+    Color.red,
+    Color.blue,
+    Color.green,
+    Color.yellow
+};
+
+    void createTestPlayers()
+    {
+        for (int i = 0; i < testPlayerCount; i++)
+        {
+            Vector3 spawnPos = SpawnArea.Instance.GetSpawnPosition(i);
+            GameObject playerObj = Instantiate(playerPrefab, spawnPos, Quaternion.identity, PlayerParent);
+
+            Player player = playerObj.GetComponent<Player>();
+            if (player != null)
+            {
+                player.name = $"TestPlayer_{i + 1}";
+
+                // Assign color
+                SpriteRenderer sr = player.GetComponent<SpriteRenderer>();
+                if (sr != null && playerColors.Length > 0)
+                {
+                    sr.color = playerColors[i % playerColors.Length];
+                }
+
+                players.Add(player);
+                Debug.LogError( $"TestPlayer_{i + 1}");
+            }
+            else
+            {
+                Debug.LogError($"Player component not found on {playerObj.name}");
+            }
+        }
+    }
+
+
 
 
     [Serializable]
@@ -40,16 +85,19 @@ public class GameManager : MonoBehaviour
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+
+        
     }
 
     void Start()
     {
+        
         SetupBoard();
+
     }
 
     public void SetupBoard()
     {
-
         // 1) Ensure we have tree tiles
         if (chestTiles == null) chestTiles = new List<Chest>();
 
@@ -128,9 +176,16 @@ public class GameManager : MonoBehaviour
         Debug.Log($"GameManager.SetupBoard() - Assigned {assignCount} symbol(s) to trees.");
 
         // get players
+        createTestPlayers();
 
-        players.Clear();
-        players = PlayerParent.GetComponentsInChildren<Player>().ToList();
+        //players.Clear();
+        //players = PlayerParent.GetComponentsInChildren<Player>().ToList();
+
+        // put players on board
+        //for (int i = 0; i < players.Count; i++)
+        //{
+        //    players[i].transform.position = SpawnArea.Instance.GetSpawnPosition(i);
+        //}
 
         StartTurn();
 
@@ -178,7 +233,8 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            currentGuesser.transform.position = SpawnArea.transform.position;
+            PunishPlayer(currentGuesser, currentPlayerIndex);
+            currentGuesser.InSpawnArea = true;
             Debug.Log($"{currentGuesser.name} guessed wrong!");
         }
         yield return new WaitForSeconds(1.5f);
@@ -203,14 +259,15 @@ public class GameManager : MonoBehaviour
 
     private void TryClaimCard(Player player, Chest chest)
     {
-        // Add to player's score
-        // Remove card from deck
+        player.cardsWon++;
+        cards.RevealCard();
     }
 
     //-----------------------------------------------------------------------------------
     private bool waitingForMovementChoice = false;
     public bool TeleportModeActive { get; private set; } = false;
     public bool GuessModeActive { get; private set; } = false;
+
 
     public void StartTurn()
     {   
@@ -288,4 +345,10 @@ public class GameManager : MonoBehaviour
         waitingForMovementChoice = false;
     }
 
+    public void PunishPlayer(Player player, int? playerIndex = null)
+    {
+        Debug.Log($"{player.name} was punished! Sent back to start.");
+        player.transform.position = SpawnArea.Instance.GetSpawnPosition(playerIndex);
+        player.InSpawnArea = true;
+    }
 }

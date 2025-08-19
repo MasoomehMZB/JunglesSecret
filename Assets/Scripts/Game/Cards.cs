@@ -24,7 +24,7 @@ public class Cards : MonoBehaviour
         currentCard = cardDeck.Dequeue();
         displayRenderer.sprite = currentCard.sprite;
 
-        Debug.Log($"Current Card Revealed: {currentCard.id}");
+        Debug.Log($"Current Card Revealed: {currentCard.id}, remaining{cardDeck.Count}");
     }
 
 
