@@ -60,7 +60,7 @@ public class Player : MonoBehaviour
                 yield return null;
             }
 
-            if (OnKeyTile) ExitKeyTile();
+            ExitKeyTile();
             ExitChestTile();
             
             // Get the first direction :
@@ -120,10 +120,13 @@ public class Player : MonoBehaviour
             }
         }
 
+        // General after Movement checks and variable sets
+
+        InSpawnArea = false;
+
         // For after teleports
         if (GameManager.Instance.TeleportModeActive)
         {
-            InSpawnArea = false;
             Debug.Log($"current waypoint = {currentWaypoint}");
             ExitChestTile();
         }
@@ -267,7 +270,9 @@ public class Player : MonoBehaviour
 
     void HitAnotherPlayer()
     {
-        if (InSpawnArea) return;
+        if (InSpawnArea) {
+            Debug.Log("In hit, In Spawn");
+            return; }
 
         Debug.Log("In hit");
 
