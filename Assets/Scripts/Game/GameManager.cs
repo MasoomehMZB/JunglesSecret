@@ -9,13 +9,13 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    private List<Player> players = new List<Player>(); // Add all players
+    private List<Player> players = new List<Player>(); 
     public Transform PlayerParent;
     private int currentPlayerIndex = 0;
 
     public Dice dice;
     public Key key;
-
+    
     public Transform firstTile; 
 
     private Player currentGuesser;
@@ -29,6 +29,13 @@ public class GameManager : MonoBehaviour
     public List<SymbolDef> symbolDefs = new List<SymbolDef>();
     private Dictionary<string, Chest> symbolToChest = new Dictionary<string, Chest>();
     public bool GameOver { get; private set; } = false;
+
+    // Movement flags
+    private bool waitingForMovementChoice = false;
+    public bool TeleportModeActive { get; private set; } = false;
+    public bool GuessModeActive { get; private set; } = false;
+
+
 
 
     //test
@@ -85,9 +92,7 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         if (Instance == null) Instance = this;
-        else Destroy(gameObject);
-
-        
+        else Destroy(gameObject);      
     }
 
     void Start()
@@ -204,9 +209,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    //-------------------------------------------------------------------------------------------------------
-
-    // Called when player lands on the Key tile
+    // Key tile guess functionality
     public void StartGuessMode(Player player)
     {
         GuessModeActive = true;
@@ -217,11 +220,7 @@ public class GameManager : MonoBehaviour
     // Called when player chooses a chest
     public IEnumerator GuessChest(Chest chosenChest)
     {
-        // Show the symbol they picked
         chosenChest.RevealChosenSymbol();
-
-        // Wait for 1.5 seconds so player can see it
-        
 
         // Check if guess matches
         if (chosenChest.symbolID == GetCurrentCardSymbol())
@@ -236,10 +235,9 @@ public class GameManager : MonoBehaviour
             Debug.Log($"{currentGuesser.name} guessed wrong!");
         }
         yield return new WaitForSeconds(1.5f);
-        // Hide symbol after result
+      
         chosenChest.HideSymbol();
 
-        // End guess mode
         StopGuessMode();
     }
 
@@ -261,12 +259,7 @@ public class GameManager : MonoBehaviour
         cards.RevealCard();
     }
 
-    //-----------------------------------------------------------------------------------
-    private bool waitingForMovementChoice = false;
-    public bool TeleportModeActive { get; private set; } = false;
-    public bool GuessModeActive { get; private set; } = false;
-
-
+    // Player Movement
     public void StartTurn()
     {
         if (GameOver) return;
@@ -302,8 +295,8 @@ public class GameManager : MonoBehaviour
         currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
         StartTurn();
     }
-   // -------------------------------------------------------------------------------------------------
 
+   // Teleport related functions
     public void TeleportTo(GameObject target)
     {
         if (currentPlayer == null)
