@@ -11,10 +11,7 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private TMP_Text statusText;   
     [SerializeField] private GameObject inputPanel; 
 
-    [Header("Dependencies")]
-    [SerializeField] private Connect connect;
-
-    [SerializeField] private NetworkManager networkManager;
+    [SerializeField] private MyNetworkManager networkManager;
 
     [Header("Settings")]
     [SerializeField] private float connectTimeout = 5f; // seconds
@@ -31,7 +28,7 @@ public class MainMenu : MonoBehaviour
     // --- HOST ---
     public void OnHostButton()
     {
-        connect.StartHost();
+        networkManager.StartHostGame();
 
         string hostIP = NetworkUtils.GetLocalIPv4();
         GameSession.Instance.hostIP = hostIP;
@@ -70,7 +67,7 @@ public class MainMenu : MonoBehaviour
         }
 
         // Start connecting
-        connect.JoinFromInput(ip);
+        networkManager.JoinGame(ip);
         statusText.text = $"Trying to connect to {ip}...";
 
         // Start timeout coroutine
@@ -101,6 +98,12 @@ public class MainMenu : MonoBehaviour
             // Optionally: stop the client so it doesn’t keep retrying
             networkManager.StopClient();
         }
+    }
+
+    public void QuitGame()
+    {
+        Application.Quit();
+        Debug.Log("Quit Game");
     }
 }
 

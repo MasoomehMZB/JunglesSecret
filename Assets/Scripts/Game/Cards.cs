@@ -1,17 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static GameManager;
+using Mirror;
 
-public class Cards : MonoBehaviour
+public class Cards : NetworkBehaviour
 { 
     public SpriteRenderer displayRenderer;
-    public Queue<SymbolDef> cardDeck = new Queue<SymbolDef>(); // shuffled deck
-    private SymbolDef currentCard;
+    public Queue<string> cardDeck = new Queue<string>(); // shuffled deck
 
-    public SymbolDef CurrentCard => currentCard;
+    // card/state sync
+    [SyncVar(hook = nameof(OnCardChanged))] public string currentCardId; // id of current card symbol
 
-
+    [Server]
     public void RevealCard()
     {
         if (cardDeck.Count == 0)
@@ -21,11 +21,13 @@ public class Cards : MonoBehaviour
             return;
         }
 
-        currentCard = cardDeck.Dequeue();
-        displayRenderer.sprite = currentCard.sprite;
+        currentCardId = cardDeck.Dequeue();
 
-        Debug.Log($"Current Card Revealed: {currentCard.id}, remaining{cardDeck.Count}");
+        Debug.Log($"Current Card Revealed: {currentCardId}");
     }
 
-
+    void OnCardChanged(string oldId, string newId)
+    {
+        displayRenderer.sprite = GameManager.Instance.GetSpriteForSymbol(newId);
+    }
 }

@@ -2,109 +2,117 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Mirror;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class GameManager : MonoBehaviour
+public class GameManager : NetworkBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    private List<Player> players = new List<Player>(); 
-    public Transform PlayerParent;
-    private int currentPlayerIndex = 0;
+    # region Game Objects / State / Variables
 
+    // Game Objects / Transforms
+    public Transform PlayerParent;
     public Dice dice;
     public Key key;
-    
-    public Transform firstTile; 
-
-    private Player currentGuesser;
-    private Player currentPlayer;
-
+    public Transform firstTile;
+    public Transform chestParent;
     [SerializeField] private Cards cards;
 
+    // Game Object Lists
+    public List<Player> players = new List<Player>(); 
     [SerializeField] private List<Chest> chestTiles = new List<Chest>();
-    public Transform chestParent;
-
+    
+    // Game states
+    [SyncVar(hook = nameof(OnCurrentPlayerChanged))] private uint currentPlayerNetId; 
+    [SyncVar] public bool GameOver = false;
+    private Player currentGuesser;
+    private Player currentPlayer;
+    private int currentPlayerIndex = 0;
+    
+    // Symbol allocations
+    [Serializable]
+    public class SymbolDef { public string id; public Sprite sprite; }
     public List<SymbolDef> symbolDefs = new List<SymbolDef>();
     private Dictionary<string, Chest> symbolToChest = new Dictionary<string, Chest>();
-    public bool GameOver { get; private set; } = false;
+    private Dictionary<string, Sprite> symbolMap;
 
     // Movement flags
     private bool waitingForMovementChoice = false;
-    public bool TeleportModeActive { get; private set; } = false;
-    public bool GuessModeActive { get; private set; } = false;
+    [SyncVar(hook = nameof(OnTeleportModeChanged))]
+    private bool _teleportModeActive;
+    [SyncVar(hook = nameof(OnGuessModeChanged))]
+    private bool _guessModeActive;
 
+    #endregion
 
-
-
-    //test
-    [SerializeField] private GameObject playerPrefab; // assign in Inspector
-    [SerializeField] private int testPlayerCount = 2;
-    public SpriteRenderer spriteRenderer; // assign in prefab
-
-    [SerializeField]
-    private Color[] playerColors =
-    {
-    Color.red,
-    Color.blue,
-    Color.green,
-    Color.yellow
-    };
-
-    
-    void createTestPlayers()
-    {
-        for (int i = 0; i < testPlayerCount; i++)
-        {
-            Vector3 spawnPos = SpawnArea.Instance.GetSpawnPosition(i);
-            GameObject playerObj = Instantiate(playerPrefab, spawnPos, Quaternion.identity, PlayerParent);
-
-            Player player = playerObj.GetComponent<Player>();
-            if (player != null)
-            {
-                player.name = $"TestPlayer_{i + 1}";
-
-                // Assign color
-                SpriteRenderer sr = player.GetComponent<SpriteRenderer>();
-                if (sr != null && playerColors.Length > 0)
-                {
-                    sr.color = playerColors[i % playerColors.Length];
-                }
-
-                players.Add(player);
-            }
-            else
-            {
-                Debug.LogError($"Player component not found on {playerObj.name}");
-            }
-        }
-    }
-
-
-    [Serializable]
-    public class SymbolDef
-    {
-        public string id;
-        public Sprite sprite;
-    }
+    #region Unity lifecycle
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);      
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        // Build symbol lookup for all clients (this runs on every instance)
+        symbolMap = new Dictionary<string, Sprite>(symbolDefs.Count);
+        foreach (var s in symbolDefs)
+        {
+            if (!string.IsNullOrEmpty(s.id) && s.sprite != null && !symbolMap.ContainsKey(s.id))
+                symbolMap.Add(s.id, s.sprite);
+        }
+
     }
 
-    void Start()
+    public void InitializeForGameScene()
     {
+        // Now it's safe to find the scene objects because we know the game scene is loaded.
+        PlayerParent = GameObject.FindWithTag("PlayerParent")?.transform;
+        if (PlayerParent == null) Debug.LogError("Could not find object with tag 'PlayerParent'!");
+
+        chestParent = GameObject.FindWithTag("ChestParent")?.transform;
+        if (chestParent == null) Debug.LogError("Could not find object with tag 'ChestParent'!");
+
+        firstTile = GameObject.FindWithTag("FirstTile")?.transform;
+        if (firstTile == null) Debug.LogError("Could not find object with tag 'FirstTile'!");
+
+        if (dice == null)
+            dice = FindObjectOfType<Dice>();
+
+        if (cards == null)
+            cards = FindObjectOfType<Cards>();
         
-        SetupBoard();
+        if (key == null)
+            key = FindObjectOfType<Key>();
 
     }
 
+    #endregion
+
+    #region Public helper (client-friendly)
+
+    // Clients (and Chests) will call this to get sprites locally.
+    public Sprite GetSpriteForSymbol(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        if (symbolMap != null && symbolMap.TryGetValue(id, out var s)) return s;
+        return null;
+    }
+
+    #endregion
+
+    #region Setup / Board initialization (SERVER ONLY)
+
+    // Run on server only
+    [Server]
     public void SetupBoard()
     {
-        // 1) Ensure we have tree tiles
+        // find chests if not set
         if (chestTiles == null) chestTiles = new List<Chest>();
 
         if (chestTiles.Count == 0)
@@ -115,84 +123,60 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning("GameManager.SetupBoard() - No tree tiles assigned and no chestParent set.");
+                Debug.LogWarning("GameManager.SetupBoard() - No chest tiles assigned and no chestParent set.");
             }
         }
 
-        // 2) Validate symbol defs
+        // validate symbols
         if (symbolDefs == null || symbolDefs.Count == 0)
         {
-            Debug.LogError("GameManager.SetupBoard() - No symbol definitions set in GameManager (symbolDefs list is empty).");
+            Debug.LogError("GameManager.SetupBoard() - No symbol definitions set in GameManager.");
             return;
         }
 
-        if (symbolDefs.Select(s => s.id).Distinct().Count() != symbolDefs.Count)
-        {
-            Debug.LogWarning("GameManager.SetupBoard() - Some symbol IDs are duplicated. Symbol IDs should be unique.");
-        }
-
-        // 3) Decide how many assignments to make
-        int assignCount = chestTiles.Count;
-
-        if (symbolDefs.Count < assignCount)
-        {
-            Debug.LogWarning($"GameManager.SetupBoard() - Fewer symbols ({symbolDefs.Count}) than trees ({assignCount}). Symbols will be reused to fill the board.");
-        }
-        else if (symbolDefs.Count > assignCount)
-        {
-            Debug.LogWarning($"GameManager.SetupBoard() - More symbols ({symbolDefs.Count}) than trees ({assignCount}). Only {assignCount} symbols will be used this round.");
-        }
-
-        // 4) Build index lists and shuffle
+        // shuffle indices
         List<int> symbolIndices = Enumerable.Range(0, symbolDefs.Count).ToList();
         List<int> chestIndices = Enumerable.Range(0, chestTiles.Count).ToList();
+        Shuffle(symbolIndices);
+        Shuffle(chestIndices);
 
-         Shuffle(symbolIndices);
-         Shuffle(chestIndices);
-        
 
-        // 5) Assign symbols to chests 
-        symbolToChest.Clear();
+        // Assign symbols to chests 
+        int assignCount = chestTiles.Count;
+        symbolToChest = new Dictionary<string, Chest>();
         for (int i = 0; i < assignCount; i++)
         {
-            cards.cardDeck.Enqueue(symbolDefs[symbolIndices[i % symbolIndices.Count]]);
-
+            var chosenSymbol = symbolDefs[symbolIndices[i % symbolIndices.Count]];
             Chest chest = chestTiles[chestIndices[i]];
-            SymbolDef chosenSymbol = symbolDefs[symbolIndices[i % symbolIndices.Count]]; 
-
             chest.symbolID = chosenSymbol.id;
-            chest.symbolSprite = chosenSymbol.sprite;
-            chest.HideSymbol(); // make sure it's hidden at the start
 
             // rename the GameObject in editor for easier debugging (optional)
             #if UNITY_EDITOR
             chest.gameObject.name = $"Chest_{chosenSymbol.id}";
             #endif
 
-            // register mapping (last assignment wins if duplicates)
+            // register mapping (server-side)
             if (!symbolToChest.ContainsKey(chosenSymbol.id))
                 symbolToChest.Add(chosenSymbol.id, chest);
             else
                 symbolToChest[chosenSymbol.id] = chest;
+
+            // enqueue card into server-side deck representation (cards should be server-owned)
+
+            Debug.Log($"engueing {chosenSymbol.id}");
+            cards.cardDeck.Enqueue(chosenSymbol.id);
+            
         }
 
-        // card deck setup
-        cards.RevealCard();
-
-        // get players
-        createTestPlayers();
-
-        //players.Clear();
-        //players = PlayerParent.GetComponentsInChildren<Player>().ToList();
-
-        // put players on board
-        //for (int i = 0; i < players.Count; i++)
-        //{
-        //    players[i].transform.position = SpawnArea.Instance.GetSpawnPosition(i);
-        //}
-
-        StartTurn();
-
+        // Reveal first card on server and sync id to clients
+        if (cards.cardDeck.Count > 0)
+        {
+            cards.RevealCard();
+        }
+        else
+        {
+            Debug.LogError("SetupBoard: Tried to reveal but deck is empty!");
+        }
     }
 
     // Helper: randomness using UnityEngine.Random (non-deterministic)
@@ -209,94 +193,168 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Key tile guess functionality
-    public void StartGuessMode(Player player)
-    {
-        GuessModeActive = true;
-        currentGuesser = player;
-        Chest.EnableHighlight(true); // Allow chest selection
-    }
+    #endregion
 
-    // Called when player chooses a chest
-    public IEnumerator GuessChest(Chest chosenChest)
-    {
-        chosenChest.RevealChosenSymbol();
+    #region Turn management (server authoritative)
 
-        // Check if guess matches
-        if (chosenChest.symbolID == GetCurrentCardSymbol())
-        {
-            Debug.Log($"{currentGuesser.name} guessed correctly!");
-            TryClaimCard(currentGuesser, chosenChest);
-        }
-        else
-        {
-            PunishPlayer(currentGuesser, currentPlayerIndex);
-            currentGuesser.InSpawnArea = true;
-            Debug.Log($"{currentGuesser.name} guessed wrong!");
-        }
-        yield return new WaitForSeconds(1.5f);
-      
-        chosenChest.HideSymbol();
-
-        StopGuessMode();
-    }
-
-    public void StopGuessMode()
-    {
-        GuessModeActive = false;
-        currentGuesser = null;
-        Chest.EnableHighlight(false);
-    }
-
-    private string GetCurrentCardSymbol()
-    {
-        return cards.CurrentCard.id;
-    }
-
-    private void TryClaimCard(Player player, Chest chest)
-    {
-        player.cardsWon++;
-        cards.RevealCard();
-    }
-
-    // Player Movement
+    [Server]
     public void StartTurn()
     {
         if (GameOver) return;
-        waitingForMovementChoice = true;
-        currentPlayer = players[currentPlayerIndex];
-        Debug.Log($"--- {currentPlayer.name}'s Turn ---");
 
-        dice.Roll();
+        waitingForMovementChoice = true;
+
+        // If players list is empty - probably no connected players
+        if (players.Count == 0)
+        {
+            Debug.LogWarning("StartTurn: no players in players list.");
+            return;
+        }
+
+        currentPlayer = players[currentPlayerIndex];
+        currentPlayerNetId = currentPlayer.netIdentity.netId;
+
+        Debug.Log($"--- {currentPlayer.name}'s Turn (netId {currentPlayerNetId}) ---");
+
+        // Roll dice server-side (server decides dice results)
+        if (dice != null) dice.Roll();
+
+        // Notify the specific player to enable their dice UI via a TargetRpc on the Player.
+        // Player must implement TargetEnableDice(NetworkConnection, bool)
+        //currentPlayer.TargetEnableDice(currentPlayer.connectionToClient, true);
 
         if (dice.IsDouble())
         {
             Debug.Log("Double rolled! Teleport mode activated.");
-            EnableTeleportMode();
+            //EnableTeleportMode();
         }
     }
-    public void HandleDiceChoice(int chosenSteps)
-    {
 
-        Debug.Log("in handle dice choice1.");
+    [Server]
+    public void HandleDiceChoiceServer(int chosenSteps)
+    {
         if (!waitingForMovementChoice) return;
 
-        if (TeleportModeActive) DisableTeleportMode();
+        if (_teleportModeActive) DisableTeleportModeServer();
 
-        Player currentPlayer = players[currentPlayerIndex];
-        Debug.Log($"{currentPlayer.name} chose {chosenSteps} steps");
+        Debug.Log($"Server: currentPlayer chose {chosenSteps} steps");
 
         waitingForMovementChoice = false;
-        currentPlayer.RequestMove(chosenSteps);
+
+        // Start move on the player (server side)
+        // Player must expose a server method like ServerStartMove(int steps)
+        currentPlayer.ServerStartMove(chosenSteps);
     }
 
+    [Server]
     public void EndTurn()
     {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
         StartTurn();
     }
 
-   // Teleport related functions
+    // SyncVar hook for currentPlayer changes (optional logging)
+    void OnCurrentPlayerChanged(uint oldVal, uint newVal)
+    {
+        // called on clients & server when current player changes
+        Debug.Log($"OnCurrentPlayerChanged: {newVal}");
+    }
+
+    #endregion
+
+    #region Guess / Teleport Modes (server authoritative)
+
+    [Server]
+    public void StartGuessMode(Player player)
+    {
+        _guessModeActive = true;
+        currentGuesser = player;
+
+        // Highlight chests for the player only:
+        foreach (var chest in chestTiles)
+        {
+            chest.TargetSetHighlight(player.connectionToClient, true);
+        }
+    }
+
+    [Server]
+    public void StopGuessMode()
+    {
+        _guessModeActive = false;
+        currentGuesser = null;
+
+        foreach (var chest in chestTiles)
+        {
+            chest.TargetSetHighlight(currentPlayer.connectionToClient, false); 
+        }
+    }
+
+    [Server]
+    public void EnableTeleportMode()
+    {
+        _teleportModeActive = true;
+        // Highlight all chests and key for current player
+        if (currentPlayer != null)
+        {
+            foreach (var chest in chestTiles)
+                chest.TargetSetHighlight(currentPlayer.connectionToClient, true);
+
+            if (key != null) key.TargetSetHighlight(currentPlayer.connectionToClient, true);
+        }
+    }
+
+    [Server]
+    public void DisableTeleportModeServer()
+    {
+        _teleportModeActive = false;
+
+        if (currentPlayer != null)
+        {
+            foreach (var chest in chestTiles)
+                chest.TargetSetHighlight(currentPlayer.connectionToClient, false);
+
+            if (key != null) key.TargetSetHighlight(currentPlayer.connectionToClient, false);
+        }
+
+        waitingForMovementChoice = false;
+    }
+    
+
+    // Called when player chooses a chest
+    [Server]
+    public IEnumerator GuessChest(Player guesser, Chest chosenChest)
+    {
+        // Reveal chest for all clients
+        chosenChest.RpcRevealChosenSymbol();
+
+        // Wait so players see it
+        yield return new WaitForSeconds(1.5f);
+
+        if (chosenChest.symbolID == GetCurrentCardSymbol())
+        {
+            Debug.Log($"{guesser.name} guessed correctly!");
+            TryClaimCard(guesser, chosenChest);
+
+            // Success FX only for the guesser
+            guesser.TargetShowGuessResult(guesser.connectionToClient, true);
+        }
+        else
+        {
+            Debug.Log($"{guesser.name} guessed wrong!");
+            PunishPlayer(guesser);
+            guesser.InSpawnArea = true;
+
+            // Failure FX only for the guesser
+            guesser.TargetShowGuessResult(guesser.connectionToClient, false);
+        }
+
+        // Hide chest again for everyone
+        chosenChest.RpcHideSymbol();
+
+        StopGuessMode();
+    }
+
+    [Server]
     public void TeleportTo(GameObject target)
     {
         if (currentPlayer == null)
@@ -308,46 +366,119 @@ public class GameManager : MonoBehaviour
         // Align player bottom to tile center
         Vector3 bottomCenter = currentPlayer.GetPlayerBottomCenter();
         Vector3 offset = currentPlayer.transform.position - bottomCenter;
+
         currentPlayer.transform.position = target.transform.position + offset;
 
+        // Ensure clients update position (if not using NetworkTransform)
+        //RpcTeleportPlayer(currentPlayer.netId, currentPlayer.transform.position);
+
+        // End teleport turn
         currentPlayer.RequestMove(0);
-        DisableTeleportMode();
+        DisableTeleportModeServer();
+    }
+
+    [ClientRpc]
+    void RpcTeleportPlayer(uint playerNetId, Vector3 newPos)
+    {
+        if  (NetworkServer.spawned.TryGetValue(playerNetId, out var identity))
+            {
+            Player p = identity.GetComponent<Player>();
+            if (p != null)
+            {
+                p.transform.position = newPos;
+                Debug.Log($"[Client] Teleported {p.name} to {newPos}");
+            }
+        }
+    }
+
+    void OnTeleportModeChanged(bool oldValue, bool newValue)
+    {
+        foreach (var player in FindObjectsOfType<Player>())
+            player.SetTeleportMode(newValue);
+    }
+
+    void OnGuessModeChanged(bool oldValue, bool newValue)
+    {
+        foreach (var player in FindObjectsOfType<Player>())
+            player.SetGuessMode(newValue);
+    }
+
+    #endregion
+
+    #region Deck helpers mapping
+    private string GetCurrentCardSymbol()
+    {
+        return cards.currentCardId;
+    }
+
+    #endregion
+
+    #region Claim Card
+
+    [Server]
+    private void TryClaimCard(Player player, Chest chest)
+    {
+        player.cardsWon++;
+
+        // Inform everyone that this player’s score changed
+       // RpcUpdatePlayerScore(player.netId, player.cardsWon);
+
+        // Reveal next card (server logic + tell clients)
+        cards.RevealCard();
+        //RpcUpdateCurrentCard(cards.CurrentCard.id);
+    }
+
+    [ClientRpc]
+    void RpcUpdatePlayerScore(uint playerNetId, int newScore)
+    {
+        // Lookup player locally
+        if (NetworkServer.spawned.TryGetValue(playerNetId, out NetworkIdentity identity))
+        {
+            Player player = identity.GetComponent<Player>();
+            player.cardsWon = newScore; // local sync
+            Debug.Log($"[Client] {player.name} now has {newScore} cards!");
+        }
+            // TODO: update UI
         
     }
-    public void EnableTeleportMode()
+
+    [ClientRpc]
+    void RpcUpdateCurrentCard(string cardId)
     {
-        TeleportModeActive = true;
-        Chest.EnableHighlight(true);
-
-        if (key != null)
-            key.SetHighlight(true);
-
-        Debug.Log($"is in teleport mode — choose a destination.");
+        // Show new card on client UI
+        Debug.Log($"[Client] New card revealed: {cardId}");
+        // TODO: UI update
     }
 
-    public void DisableTeleportMode()
-    {
-        TeleportModeActive = false;
+    #endregion
 
-        Chest.EnableHighlight(false);
+    #region Player / punishment (server only)
 
-        if (key != null)
-            key.SetHighlight(false);
-
-        waitingForMovementChoice = false;
-    }
-
+    [Server]
     public void PunishPlayer(Player player, int? playerIndex = null)
     {
         Debug.Log($"{player.name} was punished! Sent back to start.");
         player.transform.position = SpawnArea.Instance.GetSpawnPosition(playerIndex);
         player.InSpawnArea = true;
+
+        // also notify that player (target feedback) if needed:
+        player.TargetOnPunished(player.connectionToClient);
     }
 
+    #endregion
+
+    #region End Game 
+    [Server]
     public void EndGame()
     {
         GameOver = true;
         Debug.Log("Game Over!");
+
+        if (players.Count == 0)
+        {
+            Debug.LogWarning("EndGame called with no players!");
+            return;
+        }
 
         int maxScore = players.Max(p => p.cardsWon);
         List<Player> winners = players.Where(p => p.cardsWon == maxScore).ToList();
@@ -357,7 +488,63 @@ public class GameManager : MonoBehaviour
             Debug.Log($" Winner: {winner.name} with {winner.cardsWon} points");
         }
 
-       // ShowEndGameUI(winners);
-
+        RpcShowEndGame(winners.Select(w => w.name).ToArray());
     }
+
+    [ClientRpc]
+    void RpcShowEndGame(string[] winnerNames)
+    {
+        // On each client show results UI
+        Debug.Log("Winners: " + string.Join(", ", winnerNames));
+    }
+
+    #endregion
+
+    #region Handle clicks from players (serverside)
+
+    [Server]
+    public void ServerHandleChestClick(Chest chest, Player clicker)
+    {
+        Debug.Log($"[Server] ServerHandleChestClick called by {clicker.name} on chest {chest.symbolID}");
+
+        // If guess mode active — this is someone making a guess
+        if (_guessModeActive)
+        {
+            // Only the guesser should be allowed to guess (optional extra check)
+            if (clicker != currentGuesser)
+            {
+                Debug.LogWarning("ServerHandleChestClick: clicker is not the current guesser.");
+                return;
+            }
+
+            // start the server coroutine
+            StartCoroutine(GuessChest(clicker, chest));
+            return;
+        }
+
+        // If teleport mode active and clicker is current player, teleport
+        if (_teleportModeActive && clicker == currentPlayer)
+        {
+            TeleportTo(chest.gameObject);
+            return;
+        }
+
+        Debug.Log($"Chest clicked but no valid mode active for player {clicker.name}");
+    }
+
+    [Server]
+    public void ServerHandleKeyClick(Key key, Player clicker)
+    {
+        Debug.Log($"[Server] ServerHandleKeyClick called by {clicker.name} on key");
+
+        if (_teleportModeActive && clicker == currentPlayer)
+        {
+            TeleportTo(key.gameObject);
+            return;
+        }
+
+        Debug.Log($"Key clicked but teleport not active or not current player.");
+    }
+
+    #endregion
 }

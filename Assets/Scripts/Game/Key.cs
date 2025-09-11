@@ -1,6 +1,7 @@
+using Mirror;
 using UnityEngine;
 
-public class Key : MonoBehaviour
+public class Key : NetworkBehaviour
 {
     [SerializeField] private GameObject highlightBorder;
      Vector3 originalScale;
@@ -14,15 +15,33 @@ public class Key : MonoBehaviour
         GameManager.Instance.StartGuessMode(player);
     }
 
+
     private void OnMouseDown()
     {
-        if (GameManager.Instance.TeleportModeActive)
-        {
-            GameManager.Instance.TeleportTo(gameObject);
-        }
+        if (!NetworkClient.active) return;
+
+        var conn = NetworkClient.connection;
+        if (conn == null || conn.identity == null) return;
+
+        Player localPlayer = conn.identity.GetComponent<Player>();
+        if (localPlayer == null) return;
+
+        uint keyId = netId;
+        Debug.Log($"[Client] Forwarding key click to local player. keyNetId={keyId}");
+        localPlayer.CmdSelectKey(keyId);
     }
 
-    public void SetHighlight(bool state)
+
+//private void OnMouseDown()
+//{
+//    if (GameManager.Instance.TeleportModeActive)
+//    {
+//        GameManager.Instance.TeleportTo(gameObject);
+//    }
+//}
+
+    [TargetRpc]
+    public void TargetSetHighlight(NetworkConnectionToClient target, bool state)
     {
         if (state)
         {
