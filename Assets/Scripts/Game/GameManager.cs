@@ -29,7 +29,6 @@ public class GameManager : NetworkBehaviour
     private Player currentGuesser;
     private Player currentPlayer;
     private int currentPlayerIndex = 0;
-    [SyncVar] public Vector3 firstTilePos;
     
     // Symbol allocations
     [Serializable]
@@ -198,10 +197,6 @@ public class GameManager : NetworkBehaviour
     public void StartTurn()
     {
         if (GameOver) return;
-
-        firstTilePos = firstTile.position;
-        Debug.Log($"[Host/Client] firstTile: {firstTile.position}, lossyScale={firstTile.lossyScale}, z={firstTile.position.z}");
-
 
         waitingForMovementChoice = true;
 

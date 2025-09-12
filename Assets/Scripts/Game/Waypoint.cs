@@ -19,14 +19,13 @@ public class Waypoint : MonoBehaviour
     public bool IsDeadEnd = false;
 
     public List<DirectionName> allowedDirections;
-    private HashSet<Vector2Int> allowedDirSet;
+    public HashSet<Vector2Int> allowedDirSet;
 
     void Awake()
     {
         // Convert enum list to Vector2Int list on load
         SetAllowedDirections(allowedDirections);
     }
-
 
     public void ShowChoicesUI(Action<Vector2Int> onDirectionChosen, Vector2Int currentDir)
     {
@@ -35,6 +34,8 @@ public class Waypoint : MonoBehaviour
             Debug.LogError("Choice UI Prefab not set!");
             return;
         }
+
+        Debug.Log($"ShowChoicesUI called at {name}, IsDeadEnd={IsDeadEnd}, allowedDirs={allowedDirSet.Count}, currentDir = {currentDir}");
 
         if (IsDeadEnd) {
             var autoDir = allowedDirSet.First();
@@ -54,6 +55,8 @@ public class Waypoint : MonoBehaviour
 
         if (canvas != null)
             canvas.worldCamera = Camera.main;
+
+        
 
         // Assume prefab has a script "DirectionButton" on each button with setup method
         DirectionArrow[] buttons = currentUI.GetComponentsInChildren<DirectionArrow>();
@@ -75,6 +78,8 @@ public class Waypoint : MonoBehaviour
                 btn.gameObject.SetActive(false);
             }
         }
+
+        Debug.Log($"UI instantioated {currentUI}, with btns {buttons.Count()} ");
     }
 
     void OnDrawGizmos()

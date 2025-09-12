@@ -4,22 +4,25 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Mirror;
+using System.Linq;
 
 
 public class Player : NetworkBehaviour
 {
     // Movement
     private Vector2Int currentDir = Vector2Int.zero;
-    private Vector2Int lastDir = Vector2Int.zero;
+    [SyncVar] private Vector2Int lastDir = Vector2Int.zero;
     private bool isMoving = false;
     private int requestedSteps = 0;
     private Waypoint currentWaypoint;
+    [SyncVar] private Vector2Int syncedDir;
 
     // Flags
     [SyncVar] public bool InSpawnArea = true;
     private bool OnKeyTile = false;
     private bool teleportModeActive;
     private bool guessModeActive;
+    [SyncVar] bool Chose = false;
 
     // Scores
     [SyncVar] public int cardsWon = 0;
@@ -76,10 +79,10 @@ public class Player : NetworkBehaviour
 
     #region Player Movement
 
-
     [Server]
     public void ServerStartMove(int steps)
     {
+        if (isMoving) return;
         requestedSteps = steps;
         StartCoroutine(MoveRoutine()); 
     }
@@ -99,8 +102,7 @@ public class Player : NetworkBehaviour
             {
                 Vector3 bottomCenter = GetPlayerBottomCenter();
                 Vector3 offset = transform.position - bottomCenter;
-                transform.position = GameManager.Instance.firstTilePos + offset;
-                Debug.Log($"Pawn {netId} position: {transform.position}");
+                transform.position = GameManager.Instance.firstTile.position + offset;
 
                 Physics2D.SyncTransforms();
                 yield return null;
@@ -111,17 +113,18 @@ public class Player : NetworkBehaviour
             
             // Get the first direction :
             // On the waypoint
+
+            Debug.Log("First direction and requested steps: " + currentDir + requestedSteps);
+
             yield return StartCoroutine(CollidewithWaypoint((bool result) =>
             {
-
                 isDeadEnd = result;
-
             }));
 
             // Off the waypoint
             if (currentDir == Vector2Int.zero)
             {
-                yield return HandleTempWaypoint();
+                yield return StartCoroutine(HandleTempWaypoint());
             }
 
             // Movement loop
@@ -130,21 +133,11 @@ public class Player : NetworkBehaviour
                 Vector3 startPos = transform.position;
                 Vector3 targetPos = startPos + new Vector3(currentDir.x * stepAmount, currentDir.y * stepAmount, 0f);
 
-                float distance = Vector3.Distance(startPos, targetPos);
-                float duration = distance / speed;
-                float elapsed = 0f;
+                // Animate on the server too (host needs animation)
+                yield return StartCoroutine(LerpMoveRoutine(targetPos));
 
-                while (elapsed < duration)
-                {
-                    transform.position = Vector3.Lerp(startPos, targetPos, elapsed / duration);
-                    elapsed += Time.deltaTime;
-                    yield return null;
-                }
-
-                transform.position = targetPos;                
-
-                //Tell clients about position change
-                RpcUpdatePosition(targetPos);
+                // Tell clients to animate
+                RpcMoveTo(targetPos);
 
                 requestedSteps--;
 
@@ -156,7 +149,7 @@ public class Player : NetworkBehaviour
                 }));
 
                 // Handle dead end
-                if (isDeadEnd && requestedSteps >= 0)
+                if (isDeadEnd && requestedSteps >= 0 && lastDir != Vector2Int.zero)
                 {
                     RevertToPreviousState(previousPos, previousSteps);
                     yield return new WaitForSeconds(0.09f);
@@ -168,42 +161,54 @@ public class Player : NetworkBehaviour
                 
             }
         }
+        FinishMovement();
+    }
 
-        // General after Movement checks and variable sets
-
+    private void FinishMovement()
+    {
         InSpawnArea = false;
 
-        // For after teleports
         if (teleportModeActive)
         {
-            Debug.Log($"current waypoint = {currentWaypoint}");
             ExitChestTile();
         }
-
-        // Wait a frame for collider position to update
-        yield return null;
         HitAnotherPlayer();
-
         CheckSpecialTile();
 
-        yield return new WaitUntil(() => !guessModeActive);
+        StartCoroutine(WaitAndEndTurn());
+    }
 
+    IEnumerator WaitAndEndTurn()
+    {
+        yield return new WaitUntil(() => !guessModeActive);
         currentDir = Vector2Int.zero;
         isMoving = false;
-
         Debug.Log("end turn");
-
         GameManager.Instance.EndTurn();
     }
 
 
     [ClientRpc]
-    void RpcUpdatePosition(Vector3 newPos)
+    void RpcMoveTo(Vector3 targetPos)
     {
-        if (isServer) return; // server already has correct position
-        transform.position = newPos;
+        StartCoroutine(LerpMoveRoutine(targetPos));
     }
 
+    private IEnumerator LerpMoveRoutine(Vector3 targetPos)
+    {
+        Vector3 startPos = transform.position;
+        float duration = Vector3.Distance(startPos, targetPos) / speed;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPos, targetPos, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = targetPos;
+    }
 
     private void RevertToPreviousState(Vector3 previousPos, int previousSteps)
     {
@@ -233,58 +238,32 @@ public class Player : NetworkBehaviour
     #endregion
 
     #region WayPoint Handling
-    IEnumerator HandleWaypoint(Waypoint wp)
-    {
 
-        // Only local player sees arrow UI
-        if (!isLocalPlayer)
-        {
-            // Server waits until choice is received from owning client
-            yield return new WaitUntil(() => currentDir != Vector2Int.zero);
-            yield break;
-        }
-
-        bool chosen = false;
-        Vector2Int choice = currentDir; // Default to current direction
-
-        // Show UI and wait for choice
-        wp.ShowChoicesUI((Vector2Int selectedDir) =>
-        {
-            choice = selectedDir;
-            chosen = true;
-
-        }, currentDir);
-
-        while (!chosen)
-            yield return null;
-
-        // Send choice to server
-        CmdChooseDirection(choice);
-    }
-
-    [Command]
-    void CmdChooseDirection(Vector2Int dir)
-    {
-        currentDir = dir;
-        lastDir = dir;
-    }
-
+    [Server]
     IEnumerator CollidewithWaypoint(Action<bool> onResult)
-    {
+    {      
         Vector3 bottomCenter = GetPlayerBottomCenter();
         Vector3 offset = transform.position - bottomCenter;
 
-        Collider2D wpCollider = Physics2D.OverlapCircle(bottomCenter, 0.2f, LayerMask.GetMask("Waypoint"));
+        Collider2D wpCollider = Physics2D.OverlapCircle(bottomCenter, 0.1f, LayerMask.GetMask("Waypoint"));
         if (wpCollider != null)
-        {
+        {           
             currentWaypoint = wpCollider.GetComponent<Waypoint>();
+            Debug.Log($"collide with {currentWaypoint}");
+
             if (currentWaypoint != null)
             {
                 transform.position = currentWaypoint.transform.position + offset;
 
                 bool isDeadEnd = currentWaypoint.IsDeadEnd;
 
-                yield return StartCoroutine(HandleWaypoint(currentWaypoint));
+                Chose = false;
+
+                // Ask client to choose
+                TargetShowWaypointUI(connectionToClient, currentWaypoint.transform.position, currentWaypoint.allowedDirections, currentDir);
+
+                // Stop movement until client responds
+                yield return new WaitUntil(() => Chose);
 
                 onResult?.Invoke(isDeadEnd);
                 yield break;
@@ -294,31 +273,68 @@ public class Player : NetworkBehaviour
         onResult?.Invoke(false); // Not a deadend
     }
 
+    [Server]
     IEnumerator HandleTempWaypoint()
     {
-        // Only the owning client should spawn the UI
-        if (!isLocalPlayer)
-        {
-            // Server just waits until a direction is chosen
-            yield return new WaitUntil(() => currentDir != Vector2Int.zero);
-            yield break;
-        }
-
         Vector3 bottomCenter = GetPlayerBottomCenter();
         GameObject tempGO = Instantiate(waypointPrefab, bottomCenter, Quaternion.identity);
         Waypoint tempWaypoint = tempGO.GetComponent<Waypoint>();
 
+        Debug.Log("inside HandleTempWaypoint");
+
         List<DirectionName> dirOptions = (lastDir == Vector2Int.up || lastDir == Vector2Int.down)
-            ? new List<DirectionName> { DirectionName.Up, DirectionName.Down } 
-            :new List<DirectionName> { DirectionName.Left, DirectionName.Right };
+            ? new List<DirectionName> { DirectionName.Up, DirectionName.Down }
+            : new List<DirectionName> { DirectionName.Left, DirectionName.Right };
 
         tempWaypoint.SetAllowedDirections(dirOptions);
 
-        yield return StartCoroutine(HandleWaypoint(tempWaypoint));
+        // Wait until client picks
+        yield return StartCoroutine(RequestDirectionFromClient(tempWaypoint));
 
         Destroy(tempGO);
+    }
+
+    [Server]
+    IEnumerator RequestDirectionFromClient(Waypoint wp)
+    {
+        Chose = false;
+        // Ask client to show UI
+        TargetShowWaypointUI(connectionToClient, wp.transform.position, wp.allowedDirections, currentDir);
+        // Wait until CmdChooseDirection updates currentDir
+        yield return new WaitUntil(() => Chose);
+    }
+
+    [TargetRpc]
+    void TargetShowWaypointUI(NetworkConnection target, Vector3 pos, List<DirectionName> options, Vector2Int excludeDir)
+    {
+        if (!isLocalPlayer) return;
+
+        Debug.Log("inside TargetShowWaypointUI");
+
+        Waypoint temp = Instantiate(waypointPrefab, pos, Quaternion.identity).GetComponent<Waypoint>();
+        temp.SetAllowedDirections(options);
+        temp.IsDeadEnd = options.Count < 2;
+
+        // Show UI and wait for choice
+        temp.ShowChoicesUI((Vector2Int chosenDir) =>
+        {
+            CmdChooseDirection(chosenDir);
+            Destroy(temp.gameObject);
+        }, excludeDir);
 
     }
+
+    [Command]
+    void CmdChooseDirection(Vector2Int dir)
+    {
+        if (!isMoving) return;
+
+        currentDir = dir;
+        lastDir = dir;
+
+        Chose = true; 
+    }
+
 
     #endregion
 
@@ -425,13 +441,6 @@ public class Player : NetworkBehaviour
 
     #endregion
 
-    public Vector3 GetPlayerBottomCenter()
-    {
-        BoxCollider2D playerCollider = GetComponent<BoxCollider2D>();
-        Vector3 bottomCenter = playerCollider.bounds.center - new Vector3(0, playerCollider.bounds.extents.y, 0);
-        return bottomCenter;
-    }
-
     #region Hit
 
     [Server]
@@ -523,4 +532,12 @@ public class Player : NetworkBehaviour
     }
 
     #endregion
+
+    // Helper
+    public Vector3 GetPlayerBottomCenter()
+    {
+        BoxCollider2D playerCollider = GetComponent<BoxCollider2D>();
+        Vector3 bottomCenter = playerCollider.bounds.center - new Vector3(0, playerCollider.bounds.extents.y, 0);
+        return bottomCenter;
+    }
 }
