@@ -5,7 +5,7 @@ using System.Linq;
 using TMPro;
 using System.Collections;
 
-public class LobbyUI : MonoBehaviour
+public class LobbyUI : NetworkBehaviour
 {
     public static LobbyUI Instance;
 
@@ -14,6 +14,8 @@ public class LobbyUI : MonoBehaviour
     public Button backButton;
     public Button startButton; 
     public TMP_Text ReadyCount;
+
+    [SyncVar (hook = nameof(OnGameStarted))] bool gameStarted = false;
 
     void Awake()
     {
@@ -54,6 +56,7 @@ public class LobbyUI : MonoBehaviour
         if (AllPlayersReady())
         {
             lobbyPanel.SetActive(false); 
+            gameStarted = true;
             GameManager.Instance.StartTurn();
         }
         else
@@ -72,6 +75,14 @@ public class LobbyUI : MonoBehaviour
         var players = FindObjectsOfType<Player>();
         int readyCount = players.Count(p => p.isReady);
         ReadyCount.text = $"Ready Players: {readyCount}/{players.Length}";
+    }
+
+    void OnGameStarted(bool oldValue, bool newValue)
+    {
+        if (gameStarted)
+        {
+            lobbyPanel.SetActive(false);
+        }
     }
 
 }

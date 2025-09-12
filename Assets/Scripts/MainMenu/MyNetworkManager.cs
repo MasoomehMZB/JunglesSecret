@@ -52,7 +52,7 @@ public class MyNetworkManager : NetworkManager
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
         Vector3 spawnPos = SpawnArea.Instance.GetSpawnPosition(numPlayers);
-        GameObject playerObj = Instantiate(playerPrefab, spawnPos, Quaternion.identity, GameManager.Instance.PlayerParent);
+        GameObject playerObj = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
 
         Player player = playerObj.GetComponent<Player>();
         if (player != null)

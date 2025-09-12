@@ -5,6 +5,8 @@ using UnityEngine.UI;
 
 public class Dice : NetworkBehaviour
 {
+    public static Dice Instance;
+
     [Header("Dice UI Elements")]
     public Button die1Button;
     public Button die2Button;
@@ -23,13 +25,9 @@ public class Dice : NetworkBehaviour
 
     public int steps;
 
-    public void Start()
+    void Awake()
     {
-        // Hook up button events on client side
-        die1Button.onClick.AddListener(() => OnDieClicked(0));
-        die2Button.onClick.AddListener(() => OnDieClicked(1));
-        skipButton.onClick.AddListener(() => OnDieClicked(2));
-        bothButton.onClick.AddListener(() => OnDieClicked(3));
+        Instance = this;
     }
 
     [Server]
@@ -42,37 +40,16 @@ public class Dice : NetworkBehaviour
 
     void OnRollChanged1(int oldValue, int newValue)
     {
-        Debug.Log($"[Client] die1 updated to {newValue}");
         die1Image.sprite = diceFaces[newValue - 1];
-        die1Button.image.sprite = diceFaces[newValue - 1];
     }
 
     void OnRollChanged2(int oldValue, int newValue)
     {
-        Debug.Log($"[Client] die2 updated to {newValue}");
         die2Image.sprite = diceFaces[newValue - 1];
     }
 
-    private void OnDieClicked(int dieIndex)
-    {
-        if (isServer)
-        {
-            ApplyChoice(dieIndex);
-        }
-        else
-        {
-            CmdSendChoice(dieIndex);
-        }
-    }
-
-    [Command]
-    private void CmdSendChoice(int dieIndex)
-    {
-        ApplyChoice(dieIndex);
-    }
-
     [Server]
-    private void ApplyChoice(int dieIndex)
+    public void ApplyChoice(int dieIndex)
     {
         if (LastRoll1 == 0 && LastRoll2 == 0)
         {
@@ -94,39 +71,3 @@ public class Dice : NetworkBehaviour
 
     public bool IsDouble() => LastRoll1 == LastRoll2;
 }
-
-//private void OnDieClicked(int dieIndex)
-//{
-//    int steps = 0;
-//    switch (dieIndex)
-//    {
-//        case 0: steps = LastRoll1; break;
-//        case 1: steps = LastRoll2; break;
-//        case 2: steps = 0; break;
-//        case 3: steps = LastRoll1 + LastRoll2; break;
-//        default: Debug.Log("not valid die choice"); break;
-//    }
-
-//    // find local player and send the choice to the server
-//    if (!NetworkClient.active)
-//    {
-//        Debug.LogWarning("OnDieClicked: NetworkClient not active");
-//        return;
-//    }
-
-//    var conn = NetworkClient.connection;
-//    if (conn == null || conn.identity == null)
-//    {
-//        Debug.LogWarning("OnDieClicked: no local player identity");
-//        return;
-//    }
-
-//    Player localPlayer = conn.identity.GetComponent<Player>();
-//    if (localPlayer == null)
-//    {
-//        Debug.LogWarning("OnDieClicked: local Player component not found");
-//        return;
-//    }
-
-//    localPlayer.CmdSendDiceChoice(steps); // this Command hits server and calls GameManager.HandleDiceChoiceServer
-//}

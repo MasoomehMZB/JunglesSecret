@@ -13,7 +13,6 @@ public class GameManager : NetworkBehaviour
     # region Game Objects / State / Variables
 
     // Game Objects / Transforms
-    public Transform PlayerParent;
     public Dice dice;
     public Key key;
     public Transform firstTile;
@@ -24,12 +23,13 @@ public class GameManager : NetworkBehaviour
     public List<Player> players = new List<Player>(); 
     [SerializeField] private List<Chest> chestTiles = new List<Chest>();
     
-    // Game states
+    // Game states / variables
     [SyncVar(hook = nameof(OnCurrentPlayerChanged))] private uint currentPlayerNetId; 
     [SyncVar] public bool GameOver = false;
     private Player currentGuesser;
     private Player currentPlayer;
     private int currentPlayerIndex = 0;
+    [SyncVar] public Vector3 firstTilePos;
     
     // Symbol allocations
     [Serializable]
@@ -71,10 +71,7 @@ public class GameManager : NetworkBehaviour
 
     public void InitializeForGameScene()
     {
-        // Now it's safe to find the scene objects because we know the game scene is loaded.
-        PlayerParent = GameObject.FindWithTag("PlayerParent")?.transform;
-        if (PlayerParent == null) Debug.LogError("Could not find object with tag 'PlayerParent'!");
-
+        // Find the scene objects after game scene is loaded.
         chestParent = GameObject.FindWithTag("ChestParent")?.transform;
         if (chestParent == null) Debug.LogError("Could not find object with tag 'ChestParent'!");
 
@@ -202,6 +199,10 @@ public class GameManager : NetworkBehaviour
     {
         if (GameOver) return;
 
+        firstTilePos = firstTile.position;
+        Debug.Log($"[Host/Client] firstTile: {firstTile.position}, lossyScale={firstTile.lossyScale}, z={firstTile.position.z}");
+
+
         waitingForMovementChoice = true;
 
         // If players list is empty - probably no connected players
@@ -214,19 +215,18 @@ public class GameManager : NetworkBehaviour
         currentPlayer = players[currentPlayerIndex];
         currentPlayerNetId = currentPlayer.netIdentity.netId;
 
+        // Enable only the current player's UI
+        currentPlayer.TargetSetDiceButtonsActive(currentPlayer.connectionToClient, true);
+
+        // Roll dice server-side
+        dice.Roll();
+
         Debug.Log($"--- {currentPlayer.name}'s Turn (netId {currentPlayerNetId}) ---");
-
-        // Roll dice server-side (server decides dice results)
-        if (dice != null) dice.Roll();
-
-        // Notify the specific player to enable their dice UI via a TargetRpc on the Player.
-        // Player must implement TargetEnableDice(NetworkConnection, bool)
-        //currentPlayer.TargetEnableDice(currentPlayer.connectionToClient, true);
 
         if (dice.IsDouble())
         {
             Debug.Log("Double rolled! Teleport mode activated.");
-            //EnableTeleportMode();
+            EnableTeleportMode();
         }
     }
 
@@ -235,6 +235,8 @@ public class GameManager : NetworkBehaviour
     {
         if (!waitingForMovementChoice) return;
 
+        currentPlayer.TargetSetDiceButtonsActive(currentPlayer.connectionToClient, false);
+
         if (_teleportModeActive) DisableTeleportModeServer();
 
         Debug.Log($"Server: currentPlayer chose {chosenSteps} steps");
@@ -242,7 +244,6 @@ public class GameManager : NetworkBehaviour
         waitingForMovementChoice = false;
 
         // Start move on the player (server side)
-        // Player must expose a server method like ServerStartMove(int steps)
         currentPlayer.ServerStartMove(chosenSteps);
     }
 
@@ -253,7 +254,7 @@ public class GameManager : NetworkBehaviour
         StartTurn();
     }
 
-    // SyncVar hook for currentPlayer changes (optional logging)
+    // SyncVar hook for currentPlayer changes (DELETE)
     void OnCurrentPlayerChanged(uint oldVal, uint newVal)
     {
         // called on clients & server when current player changes
@@ -363,6 +364,8 @@ public class GameManager : NetworkBehaviour
             return;
         }
 
+        currentPlayer.TargetSetDiceButtonsActive(currentPlayer.connectionToClient, false);
+
         // Align player bottom to tile center
         Vector3 bottomCenter = currentPlayer.GetPlayerBottomCenter();
         Vector3 offset = currentPlayer.transform.position - bottomCenter;
@@ -370,10 +373,10 @@ public class GameManager : NetworkBehaviour
         currentPlayer.transform.position = target.transform.position + offset;
 
         // Ensure clients update position (if not using NetworkTransform)
-        //RpcTeleportPlayer(currentPlayer.netId, currentPlayer.transform.position);
+        RpcTeleportPlayer(currentPlayer.netId, currentPlayer.transform.position);
 
         // End teleport turn
-        currentPlayer.RequestMove(0);
+        currentPlayer.ServerStartMove(0);
         DisableTeleportModeServer();
     }
 
@@ -462,7 +465,7 @@ public class GameManager : NetworkBehaviour
         player.InSpawnArea = true;
 
         // also notify that player (target feedback) if needed:
-        player.TargetOnPunished(player.connectionToClient);
+        player.RpcShowPlayerHit(player.netId);
     }
 
     #endregion
