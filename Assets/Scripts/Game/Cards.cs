@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
+using System.Security.Cryptography;
 
 public class Cards : NetworkBehaviour
 { 
@@ -22,6 +23,8 @@ public class Cards : NetworkBehaviour
         }
 
         currentCardId = cardDeck.Dequeue();
+
+        OnCardChanged(null, currentCardId);
 
         Debug.Log($"Current Card Revealed: {currentCardId}");
     }

@@ -31,15 +31,6 @@ public class Key : NetworkBehaviour
         localPlayer.CmdSelectKey(keyId);
     }
 
-
-//private void OnMouseDown()
-//{
-//    if (GameManager.Instance.TeleportModeActive)
-//    {
-//        GameManager.Instance.TeleportTo(gameObject);
-//    }
-//}
-
     [TargetRpc]
     public void TargetSetHighlight(NetworkConnectionToClient target, bool state)
     {

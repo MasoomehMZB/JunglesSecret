@@ -90,7 +90,7 @@ public class GameManager : NetworkBehaviour
 
     #endregion
 
-    #region Public helper (client-friendly)
+    #region Helpers 
 
     // Clients (and Chests) will call this to get sprites locally.
     public Sprite GetSpriteForSymbol(string id)
@@ -98,6 +98,10 @@ public class GameManager : NetworkBehaviour
         if (string.IsNullOrEmpty(id)) return null;
         if (symbolMap != null && symbolMap.TryGetValue(id, out var s)) return s;
         return null;
+    }
+    private string GetCurrentCardSymbol()
+    {
+        return cards.currentCardId;
     }
 
     #endregion
@@ -239,7 +243,8 @@ public class GameManager : NetworkBehaviour
         waitingForMovementChoice = false;
 
         // Start move on the player (server side)
-        currentPlayer.ServerStartMove(chosenSteps);
+        if (chosenSteps > 0) currentPlayer.ServerStartMove(chosenSteps);
+        else currentPlayer.FinishMovement();
     }
 
     [Server]
@@ -263,6 +268,7 @@ public class GameManager : NetworkBehaviour
     [Server]
     public void StartGuessMode(Player player)
     {
+        Debug.Log("start guess mode");
         _guessModeActive = true;
         currentGuesser = player;
 
@@ -303,7 +309,7 @@ public class GameManager : NetworkBehaviour
     public void DisableTeleportModeServer()
     {
         _teleportModeActive = false;
-
+        Debug.Log("DisableTeleportModeServer called!");
         if (currentPlayer != null)
         {
             foreach (var chest in chestTiles)
@@ -325,7 +331,7 @@ public class GameManager : NetworkBehaviour
 
         // Wait so players see it
         yield return new WaitForSeconds(1.5f);
-
+        Debug.Log($"chosen = {chosenChest.symbolID} , card = {GetCurrentCardSymbol()}");
         if (chosenChest.symbolID == GetCurrentCardSymbol())
         {
             Debug.Log($"{guesser.name} guessed correctly!");
@@ -343,8 +349,6 @@ public class GameManager : NetworkBehaviour
             // Failure FX only for the guesser
             guesser.TargetShowGuessResult(guesser.connectionToClient, false);
         }
-
-        // Hide chest again for everyone
         chosenChest.RpcHideSymbol();
 
         StopGuessMode();
@@ -370,9 +374,11 @@ public class GameManager : NetworkBehaviour
         // Ensure clients update position (if not using NetworkTransform)
         RpcTeleportPlayer(currentPlayer.netId, currentPlayer.transform.position);
 
+        Physics2D.SyncTransforms();
         // End teleport turn
-        currentPlayer.ServerStartMove(0);
+        //currentPlayer.ServerStartMove(0);
         DisableTeleportModeServer();
+        currentPlayer.TeleportRoutin();
     }
 
     [ClientRpc]
@@ -399,14 +405,6 @@ public class GameManager : NetworkBehaviour
     {
         foreach (var player in FindObjectsOfType<Player>())
             player.SetGuessMode(newValue);
-    }
-
-    #endregion
-
-    #region Deck helpers mapping
-    private string GetCurrentCardSymbol()
-    {
-        return cards.currentCardId;
     }
 
     #endregion
@@ -455,6 +453,12 @@ public class GameManager : NetworkBehaviour
     [Server]
     public void PunishPlayer(Player player, int? playerIndex = null)
     {
+        if (player.lastChestTile != null)
+        {
+            player.lastChestTile.RpcHideSymbol();
+            player.lastChestTile = null;
+        }
+
         Debug.Log($"{player.name} was punished! Sent back to start.");
         player.transform.position = SpawnArea.Instance.GetSpawnPosition(playerIndex);
         player.InSpawnArea = true;

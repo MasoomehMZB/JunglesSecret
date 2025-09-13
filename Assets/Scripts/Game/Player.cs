@@ -11,11 +11,13 @@ public class Player : NetworkBehaviour
 {
     // Movement
     private Vector2Int currentDir = Vector2Int.zero;
-    [SyncVar] private Vector2Int lastDir = Vector2Int.zero;
+    private Vector2Int lastDir = Vector2Int.zero;
     private bool isMoving = false;
     private int requestedSteps = 0;
     private Waypoint currentWaypoint;
-    [SyncVar] private Vector2Int syncedDir;
+    private Vector3 turnStartPos;
+    private int turnStartSteps;
+    private Vector2Int turnStartDir;
 
     // Flags
     [SyncVar] public bool InSpawnArea = true;
@@ -31,7 +33,7 @@ public class Player : NetworkBehaviour
     [SerializeField] private float speed = 1f;
     [SerializeField] private float stepAmount = 0.54f;
     [SerializeField] private GameObject waypointPrefab;
-    private Chest lastChestTile = null;
+    public Chest lastChestTile = null;
 
     // Player Apearance
     [SyncVar(hook = nameof(OnColorChanged))]
@@ -83,6 +85,11 @@ public class Player : NetworkBehaviour
     public void ServerStartMove(int steps)
     {
         if (isMoving) return;
+
+        turnStartPos = transform.position;
+        turnStartSteps = steps;
+        turnStartDir = lastDir;
+
         requestedSteps = steps;
         StartCoroutine(MoveRoutine()); 
     }
@@ -95,8 +102,6 @@ public class Player : NetworkBehaviour
         {   
             isMoving = true;
             bool isDeadEnd = false;
-            Vector3 previousPos = transform.position;
-            int previousSteps = requestedSteps;
 
             if (InSpawnArea)
             {
@@ -108,6 +113,7 @@ public class Player : NetworkBehaviour
                 yield return null;
             }
 
+            InSpawnArea = false;
             ExitKeyTile();
             ExitChestTile();
             
@@ -151,35 +157,35 @@ public class Player : NetworkBehaviour
                 // Handle dead end
                 if (isDeadEnd && requestedSteps >= 0 && lastDir != Vector2Int.zero)
                 {
-                    RevertToPreviousState(previousPos, previousSteps);
+                    RevertToPreviousState(turnStartPos, turnStartSteps, turnStartDir);
                     yield return new WaitForSeconds(0.09f);
 
-                    ServerStartMove(previousSteps);
+                    ServerStartMove(turnStartSteps);
                     yield break;
                 }
 
                 
             }
         }
+
         FinishMovement();
     }
-
-    private void FinishMovement()
+    public void TeleportRoutin()
     {
         InSpawnArea = false;
-
-        if (teleportModeActive)
-        {
-            ExitChestTile();
-        }
+        ExitChestTile();
+        FinishMovement();
+    }
+    public void FinishMovement()
+    {
         HitAnotherPlayer();
         CheckSpecialTile();
 
         StartCoroutine(WaitAndEndTurn());
     }
 
-    IEnumerator WaitAndEndTurn()
-    {
+    private IEnumerator WaitAndEndTurn()
+    {       
         yield return new WaitUntil(() => !guessModeActive);
         currentDir = Vector2Int.zero;
         isMoving = false;
@@ -210,13 +216,23 @@ public class Player : NetworkBehaviour
         transform.position = targetPos;
     }
 
-    private void RevertToPreviousState(Vector3 previousPos, int previousSteps)
+    private void RevertToPreviousState(Vector3 previousPos, int previousSteps, Vector2Int previousDir)
     {
         transform.position = previousPos;
         requestedSteps = previousSteps;
         currentDir = Vector2Int.zero;
+        lastDir = previousDir;
         isMoving = false;
         currentWaypoint = null;
+
+        // Force clients to snap instantly as well
+        RpcForceSnap(previousPos);
+    }
+
+    [ClientRpc]
+    private void RpcForceSnap(Vector3 snapPos)
+    {
+        transform.position = snapPos;
     }
     void ExitChestTile()
     {
@@ -345,6 +361,7 @@ public class Player : NetworkBehaviour
     {
         Vector3 bottomCenter = GetPlayerBottomCenter();
         Collider2D hit = Physics2D.OverlapCircle(bottomCenter, 0.2f, LayerMask.GetMask("Special"));
+        Debug.Log($"collided with {hit}");
         if (hit)
         {
             if (hit.TryGetComponent<Chest>(out Chest chest))
@@ -352,18 +369,12 @@ public class Player : NetworkBehaviour
                 Debug.Log($"{name} landed on chest {chest.symbolID}");
                 chest.OnPlayerLanded(this);
                 lastChestTile = chest;
-
-                // Tell all clients to reveal chest symbol
-                //RpcShowChest(chest.symbolID);
             }
             else if (hit.TryGetComponent<Key>(out Key key))
             {
                 Debug.Log($"{name} landed on KEY");
                 OnKeyTile = true;
                 key.OnPlayerLanded(this);
-
-                // Tell all clients to show key effect
-                //RpcShowKeyEffect();
             }
             else
             {
@@ -420,13 +431,11 @@ public class Player : NetworkBehaviour
     public void SetTeleportMode(bool active)
     {
         teleportModeActive = active;
-        // Optional: show/hide teleport UI here
     }
 
     public void SetGuessMode(bool active)
     {
         guessModeActive = active;
-        // Optional: show/hide guess UI here
     }
 
     public void TargetShowGuessResult(NetworkConnectionToClient target, bool success)
@@ -455,7 +464,7 @@ public class Player : NetworkBehaviour
         // Get all colliders in range on "Player" layer
         Collider2D[] colliders = Physics2D.OverlapCircleAll(
             transform.position,
-            0.4f,
+            0.1f,
             LayerMask.GetMask("Player")
         );
 

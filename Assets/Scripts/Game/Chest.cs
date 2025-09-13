@@ -12,11 +12,6 @@ public class Chest : NetworkBehaviour
     private Vector3 originalScale;
 
     void Awake() => originalScale = transform.localScale;
-    void Start()
-    {
-        //RpcHideSymbol();
-        SetHighlightLocal(false);
-    }
 
     [Server]
     public void OnPlayerLanded(Player player)
@@ -47,6 +42,7 @@ public class Chest : NetworkBehaviour
    
     private void SetHighlightLocal(bool state)
     {
+        Debug.Log($"[Client] Highlighting chest {name} = {state}");
         if (state)
         {
             transform.localScale = originalScale * 1.3f;
@@ -59,47 +55,18 @@ public class Chest : NetworkBehaviour
         }
     }
 
-
-    //private void OnMouseDown()
-    //{
-    //    if (GameManager.Instance.GuessModeActive)
-    //    {
-    //        StartCoroutine(GameManager.Instance.GuessChest(this));
-    //    }
-    //    else if (GameManager.Instance.TeleportModeActive)
-    //    {
-    //        GameManager.Instance.TeleportTo(gameObject);
-    //    }
-    //}
-
     private void OnMouseDown()
     {
-        // Safety: only run this client-side
-        if (!Application.isPlaying) return;
-
-        // Ensure we have a local player (client) to forward to
-        if (!NetworkClient.active)
-        {
-            Debug.LogWarning("Chest click: NetworkClient not active.");
-            return;
-        }
+        if (!NetworkClient.active) return;
 
         var conn = NetworkClient.connection;
-        if (conn == null || conn.identity == null)
-        {
-            Debug.LogWarning("Chest click: No local player identity available.");
-            return;
-        }
-
+        if (conn == null || conn.identity == null)return;
+        
         Player localPlayer = conn.identity.GetComponent<Player>();
-        if (localPlayer == null)
-        {
-            Debug.LogWarning("Chest click: local player component not found.");
-            return;
-        }
-
+        if (localPlayer == null) return;
+        
         // Forward the chest click to the player's Command (send chest netId)
-        uint chestId = netId; // NetworkBehaviour.netId
+        uint chestId = netId; 
         Debug.Log($"[Client] Forwarding chest click to local player. chestNetId={chestId}");
         localPlayer.CmdSelectChest(chestId);
     }
