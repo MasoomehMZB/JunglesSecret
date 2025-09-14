@@ -6,14 +6,12 @@ using System.Collections;
 
 public class MainMenu : MonoBehaviour
 {
-    [Header("UI References")]
     [SerializeField] private TMP_InputField ipInputField;
     [SerializeField] private TMP_Text statusText;   
     [SerializeField] private GameObject inputPanel; 
 
     [SerializeField] private MyNetworkManager networkManager;
 
-    [Header("Settings")]
     [SerializeField] private float connectTimeout = 5f; // seconds
 
     private Coroutine connectRoutine;
@@ -22,7 +20,7 @@ public class MainMenu : MonoBehaviour
     {
         // Hide IP input until Join button is clicked
         inputPanel.SetActive(false);
-        statusText.text = "Welcome! Choose Host or Join.";
+        statusText.text = "Welcome! \nChoose Start or Join.";
     }
 
     // --- HOST ---
@@ -33,7 +31,7 @@ public class MainMenu : MonoBehaviour
         string hostIP = NetworkUtils.GetLocalIPv4();
         GameSession.Instance.hostIP = hostIP;
 
-        statusText.text = $"Hosting game...\nYour IP: {hostIP}\nWaiting for players.";
+        statusText.text = $"Hosting game...";
     }
 
 
@@ -62,13 +60,13 @@ public class MainMenu : MonoBehaviour
         // IP validation
         if (!IPAddress.TryParse(ip, out _))
         {
-            statusText.text = $" Invalid IP: {ip}";
+            statusText.text = $" Invalid IP";
             return;
         }
 
         // Start connecting
         networkManager.JoinGame(ip);
-        statusText.text = $"Trying to connect to {ip}...";
+        statusText.text = $"Trying to connect to \n{ip}";
 
         // Start timeout coroutine
         if (connectRoutine != null) StopCoroutine(connectRoutine);
@@ -83,7 +81,7 @@ public class MainMenu : MonoBehaviour
             // Check if client successfully connected
             if (NetworkClient.isConnected)
             {
-                statusText.text = $" Connected to {ip}";
+                statusText.text = $" Connected to \n{ip}";
                 yield break;
             }
 
@@ -94,8 +92,7 @@ public class MainMenu : MonoBehaviour
         // Timeout reached, still not connected
         if (!NetworkClient.isConnected)
         {
-            statusText.text = $" Failed to connect to {ip} (timeout).";
-            // Optionally: stop the client so it doesn’t keep retrying
+            statusText.text = $" Failed to connect to \n{ip} (timeout).";
             networkManager.StopClient();
         }
     }
