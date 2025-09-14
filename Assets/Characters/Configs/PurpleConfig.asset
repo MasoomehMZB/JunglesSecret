@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 423e7c2fd0f065f4e8b4b6a4ac6f47d5, type: 3}
+  m_Name: PurpleConfig
+  m_EditorClassIdentifier: 
+  idle: {fileID: -1175013594, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  walkUp:
+  - {fileID: -2141565727, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -1462141441, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -2141565727, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: 478524884, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -2141565727, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  walkDown:
+  - {fileID: -1175013594, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -583179026, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -1175013594, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -1577592195, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -1175013594, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  walkLeft:
+  - {fileID: 115753082, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: 783333611, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: 115753082, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -806007664, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: 115753082, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  walkRight:
+  - {fileID: -1422087132, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: 1117006664, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -1422087132, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: 976621331, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}
+  - {fileID: -1422087132, guid: 56579fb5b462ffc4b863fa2905dc6a8e, type: 3}

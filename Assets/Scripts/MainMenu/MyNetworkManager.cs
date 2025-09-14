@@ -6,14 +6,8 @@ public class MyNetworkManager : NetworkManager
 {
     public GameObject gameManagerPrefab;
 
-    private Color[] playerColors =
- {
-        Color.white,
-        Color.blue,
-        Color.green,
-        Color.yellow,
-        Color.red,
-    };
+    private Dictionary<NetworkIdentity, int> playerCharacters = new Dictionary<NetworkIdentity, int>();
+    private List<int> availableIndices = new List<int> {0, 1, 2, 3, 4};
 
     public override void OnStartServer()
     {
@@ -55,13 +49,15 @@ public class MyNetworkManager : NetworkManager
         GameObject playerObj = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
 
         Player player = playerObj.GetComponent<Player>();
+        Debug.Log($"trying to add player {conn}, GO = {player}");
+
+
         if (player != null)
         {
             player.name = $"Player_{numPlayers + 1}";
 
-            // Assign unique color
-            if (playerColors.Length > 0)
-                player.playerColor = playerColors[numPlayers % playerColors.Length];
+            int randomIndex = AssignCharacterToPlayer(player.netIdentity);
+            player.ServerSetCharacter(randomIndex);
 
             // Add to GameManager’s player list
             GameManager.Instance.players.Add(player);
@@ -87,11 +83,42 @@ public class MyNetworkManager : NetworkManager
             if (player != null)
             {
                 GameManager.Instance.players.Remove(player);
+                FreeCharacter(player.netIdentity);
                 LobbyUI.Instance.UpdatePlayerReady();
             }
         }
 
         base.OnServerDisconnect(conn);
+    }
+
+    [Server]
+    public int AssignCharacterToPlayer(NetworkIdentity player)
+    {
+        if (availableIndices.Count == 0)
+        {
+            Debug.LogWarning("No characters left to assign!");
+            return -1;
+        }
+
+        int randomIndex = Random.Range(0, availableIndices.Count);
+        int chosenCharacter = availableIndices[randomIndex];
+        availableIndices.RemoveAt(randomIndex);
+
+        Debug.Log($"the chosen one is{chosenCharacter} remaning {availableIndices.Count}");
+
+        playerCharacters[player] = chosenCharacter;
+        return chosenCharacter;
+    }
+
+    [Server]
+    public void FreeCharacter(NetworkIdentity player)
+    {
+        if (playerCharacters.ContainsKey(player))
+        {
+            int index = playerCharacters[player];
+            availableIndices.Add(index);
+            playerCharacters.Remove(player);
+        }
     }
 
 }

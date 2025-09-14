@@ -14,6 +14,7 @@ public class LobbyUI : NetworkBehaviour
     public Button backButton;
     public Button startButton; 
     public TMP_Text ReadyCount;
+    public Image avatarImage;
 
     [SyncVar (hook = nameof(OnGameStarted))] bool gameStarted = false;
 
@@ -30,13 +31,13 @@ public class LobbyUI : NetworkBehaviour
 
         // Only host sees Start button
         startButton.gameObject.SetActive(NetworkServer.active);
+        AddAvatar();
     }
 
     void OnReadyClicked()
     {
         Player.localPlayer.SetReady(true); 
         readyButton.interactable = false;
-        readyButton.GetComponent<Image>().color = Color.green;
     }
 
     void OnBackClicked()
@@ -84,6 +85,15 @@ public class LobbyUI : NetworkBehaviour
             lobbyPanel.SetActive(false);
         }
     }
+    public void AddAvatar()
+    {
+        if (Player.localPlayer == null) return;
+        int idx = Player.localPlayer.characterIndex;
+        Debug.Log($"Refreshing avatar for character index: {idx}");
+        Sprite idle = CharacterDatabase.Instance?.Get(idx)?.idle;
+        if (idle != null) avatarImage.sprite = idle;
+    }
+
 
 }
 

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 423e7c2fd0f065f4e8b4b6a4ac6f47d5, type: 3}
+  m_Name: PinkConfig
+  m_EditorClassIdentifier: 
+  idle: {fileID: 1786139501, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  walkUp:
+  - {fileID: 1940166249, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1560845905, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1940166249, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1734175294, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1940166249, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  walkDown:
+  - {fileID: 1786139501, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 538698773, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1786139501, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: -931307532, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1786139501, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  walkLeft:
+  - {fileID: 1650204769, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1059288949, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1650204769, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 128996592, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 1650204769, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  walkRight:
+  - {fileID: 634922528, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: -1790482572, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 634922528, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: -789757321, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}
+  - {fileID: 634922528, guid: 905e7b1ed1a33d042a4bc83fda2d4397, type: 3}

@@ -77,7 +77,7 @@ SpriteRenderer:
   m_SortingLayerID: 213390233
   m_SortingLayer: 3
   m_SortingOrder: 0
-  m_Sprite: {fileID: 1034676321, guid: 701a04a8c436acc4c9eb709fbf27569f, type: 3}
+  m_Sprite: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -85,7 +85,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!114 &7980111329954160802
@@ -109,8 +109,8 @@ MonoBehaviour:
   stepAmount: 0.59
   waypointPrefab: {fileID: 5799169672712151345, guid: 0feb6c8c9f174f246a7c598ec2e251c1, type: 3}
   lastChestTile: {fileID: 0}
-  playerColor: {r: 0, g: 0, b: 0, a: 0}
   isReady: 0
+  characterIndex: -1
 --- !u!61 &7980111329954160801
 BoxCollider2D:
   m_ObjectHideFlags: 0

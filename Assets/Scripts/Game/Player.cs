@@ -36,21 +36,20 @@ public class Player : NetworkBehaviour
     public Chest lastChestTile = null;
 
     // Player Apearance
-    [SyncVar(hook = nameof(OnColorChanged))]
-    public Color playerColor;
     private SpriteRenderer spriteRenderer;
-
     public static Player localPlayer;  
     [SyncVar(hook = nameof(OnReadyChanged))]
     public bool isReady = false;
+    [SyncVar(hook = nameof(OnCharacterChanged))]
+    public int characterIndex = -1;
+
+    // local runtime
+    CharacterConfig character;
+    Coroutine animationCoroutine;
+
 
     #region Player Initial settings
-    void Awake()
-    {
-        spriteRenderer = GetComponent<SpriteRenderer>();
-    }
-
-    
+   
     public void SetReady(bool ready)
     {
         CmdSetReady(ready);
@@ -68,15 +67,77 @@ public class Player : NetworkBehaviour
            LobbyUI.Instance.UpdatePlayerReady();
         
     }
+    #endregion
 
-    void OnColorChanged(Color oldColor, Color newColor)
+    #region Player Animation
+    void Awake()
     {
-        // Update the SpriteRenderer's color on the client.
-        if (spriteRenderer != null)
+        if (spriteRenderer == null) spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        if (characterIndex >= 0) ApplyCharacter(characterIndex);
+    }
+
+    void OnCharacterChanged(int oldIdx, int newIdx)
+    {
+        ApplyCharacter(newIdx);
+    }
+
+    void ApplyCharacter(int idx)
+    {
+        character = CharacterDatabase.Instance?.Get(idx);
+        if (character == null) return;
+        // set idle sprite
+        spriteRenderer.sprite = character.idle;
+    }
+
+    void OnDirectionChanged(int oldx, int newx) { /* combined hook below handles both */ }
+    void OnMovingChanged(bool oldVal, bool newVal)
+    {
+        UpdateAnimationState();
+    }
+
+    void UpdateAnimationState()
+    {
+        Debug.Log("moving satus changed");
+        //Vector2Int currentDir = new Vector2Int(dirX, dirY);
+
+        //// stop previous animation
+        //if (animationCoroutine != null) { StopCoroutine(animationCoroutine); animationCoroutine = null; }
+
+        //if (!isMoving)
+        //{
+        //    // show idle sprite for current character (no animation)
+        //    if (character != null) spriteRenderer.sprite = character.idle;
+        //    return;
+        //}
+
+        //// choose frames by direction and start looping
+        //if (character == null) return;
+        //Sprite[] frames = character.GetWalkFrames(currentDir);
+        //if (frames == null || frames.Length == 0) return;
+
+        //animationCoroutine = StartCoroutine(RunFrames(frames, 8)); // 8 fps (change if needed)
+    }
+
+    IEnumerator RunFrames(Sprite[] frames, float fps)
+    {
+        int idx = 0;
+        float delay = 1f / fps;
+        while (true)
         {
-            spriteRenderer.color = newColor;
+            spriteRenderer.sprite = frames[idx % frames.Length];
+            idx++;
+            yield return new WaitForSeconds(delay);
         }
     }
+    [Server]
+    public void ServerSetCharacter(int idx) => characterIndex = idx;
+
+    //[Server]
+    //public void ServerSetMovement(Vector2Int dir, bool moving)
+    //{
+    //    dirX = dir.x; dirY = dir.y; isMoving = moving;
+    //}
+
     #endregion
 
     #region Player Movement
