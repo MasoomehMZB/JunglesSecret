@@ -163,7 +163,6 @@ public class GameManager : NetworkBehaviour
 
             // enqueue card into server-side deck representation (cards should be server-owned)
 
-            Debug.Log($"engueing {chosenSymbol.id}");
             cards.cardDeck.Enqueue(chosenSymbol.id);
             
         }

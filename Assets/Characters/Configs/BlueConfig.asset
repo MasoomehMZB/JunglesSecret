@@ -14,25 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   idle: {fileID: -769067288, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   walkUp:
-  - {fileID: 1207202852, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: -2031564408, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: 1207202852, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: 842641713, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: 1207202852, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   walkDown:
-  - {fileID: -769067288, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: 222100324, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: -769067288, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: -2014282494, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: -769067288, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   walkLeft:
-  - {fileID: 935787632, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: -938485966, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: 935787632, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: 1561317791, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: 935787632, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   walkRight:
-  - {fileID: -932698247, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: -1336097976, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: -932698247, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}
   - {fileID: 560629234, guid: 5384080829c6dbc4fac77fbe87bc958a, type: 3}

@@ -62,7 +62,7 @@ public class LobbyUI : NetworkBehaviour
         }
         else
         {
-            Debug.Log("Not all players are ready!");
+            ReadyCount.text ="Not all players are ready!";
         }
     }
 

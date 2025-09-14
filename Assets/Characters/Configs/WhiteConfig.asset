@@ -14,25 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   idle: {fileID: 1937354593, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   walkUp:
-  - {fileID: 20550364, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: 447964623, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: 20550364, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: -1885951936, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: 20550364, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   walkDown:
-  - {fileID: 1937354593, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: 1670180318, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: 1937354593, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: -416511605, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: 1937354593, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   walkLeft:
-  - {fileID: -552947166, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: 2004033791, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: -552947166, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: -27861835, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: -552947166, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   walkRight:
-  - {fileID: -568674644, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: -1965675715, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: -568674644, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
   - {fileID: 1425132035, guid: 0429134313eeecc4a90bc275a5e0b222, type: 3}
