@@ -15,6 +15,7 @@ public class LobbyUI : NetworkBehaviour
     public Button startButton; 
     public TMP_Text ReadyCount;
     public Image avatarImage;
+    //public GameObject gameUI;
 
     [SyncVar (hook = nameof(OnGameStarted))] bool gameStarted = false;
 
@@ -58,6 +59,7 @@ public class LobbyUI : NetworkBehaviour
         {
             lobbyPanel.SetActive(false); 
             gameStarted = true;
+            //gameUI.SetActive(true);
             GameManager.Instance.StartTurn();
         }
         else

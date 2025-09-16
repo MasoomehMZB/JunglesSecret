@@ -11,6 +11,7 @@ public class Cards : NetworkBehaviour
 
     // card/state sync
     [SyncVar(hook = nameof(OnCardChanged))] public string currentCardId; // id of current card symbol
+    [SyncVar] public int remainingCards;
 
     [Server]
     public void RevealCard()
@@ -23,6 +24,8 @@ public class Cards : NetworkBehaviour
         }
 
         currentCardId = cardDeck.Dequeue();
+
+        remainingCards = cardDeck.Count;
 
         OnCardChanged(null, currentCardId);
 

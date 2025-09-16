@@ -85,7 +85,6 @@ public class GameManager : NetworkBehaviour
         
         if (key == null)
             key = FindObjectOfType<Key>();
-
     }
 
     #endregion
@@ -164,7 +163,7 @@ public class GameManager : NetworkBehaviour
             // enqueue card into server-side deck representation (cards should be server-owned)
 
             cards.cardDeck.Enqueue(chosenSymbol.id);
-            
+
         }
 
         // Reveal first card on server and sync id to clients
@@ -274,7 +273,7 @@ public class GameManager : NetworkBehaviour
         // Highlight chests for the player only:
         foreach (var chest in chestTiles)
         {
-            chest.TargetSetHighlight(player.connectionToClient, true);
+            chest.TargetSetHighlight(player.connectionToClient, true, "choose");
         }
     }
 
@@ -286,7 +285,7 @@ public class GameManager : NetworkBehaviour
 
         foreach (var chest in chestTiles)
         {
-            chest.TargetSetHighlight(currentPlayer.connectionToClient, false); 
+            chest.TargetSetHighlight(currentPlayer.connectionToClient, false, "choose"); 
         }
     }
 
@@ -298,7 +297,7 @@ public class GameManager : NetworkBehaviour
         if (currentPlayer != null)
         {
             foreach (var chest in chestTiles)
-                chest.TargetSetHighlight(currentPlayer.connectionToClient, true);
+                chest.TargetSetHighlight(currentPlayer.connectionToClient, true, "teleport");
 
             if (key != null) key.TargetSetHighlight(currentPlayer.connectionToClient, true);
         }
@@ -312,7 +311,7 @@ public class GameManager : NetworkBehaviour
         if (currentPlayer != null)
         {
             foreach (var chest in chestTiles)
-                chest.TargetSetHighlight(currentPlayer.connectionToClient, false);
+                chest.TargetSetHighlight(currentPlayer.connectionToClient, false, "teleport");
 
             if (key != null) key.TargetSetHighlight(currentPlayer.connectionToClient, false);
         }
@@ -414,35 +413,9 @@ public class GameManager : NetworkBehaviour
     private void TryClaimCard(Player player, Chest chest)
     {
         player.cardsWon++;
-
-        // Inform everyone that this player’s score changed
-       // RpcUpdatePlayerScore(player.netId, player.cardsWon);
-
         // Reveal next card (server logic + tell clients)
         cards.RevealCard();
         //RpcUpdateCurrentCard(cards.CurrentCard.id);
-    }
-
-    [ClientRpc]
-    void RpcUpdatePlayerScore(uint playerNetId, int newScore)
-    {
-        // Lookup player locally
-        if (NetworkServer.spawned.TryGetValue(playerNetId, out NetworkIdentity identity))
-        {
-            Player player = identity.GetComponent<Player>();
-            player.cardsWon = newScore; // local sync
-            Debug.Log($"[Client] {player.name} now has {newScore} cards!");
-        }
-            // TODO: update UI
-        
-    }
-
-    [ClientRpc]
-    void RpcUpdateCurrentCard(string cardId)
-    {
-        // Show new card on client UI
-        Debug.Log($"[Client] New card revealed: {cardId}");
-        // TODO: UI update
     }
 
     #endregion

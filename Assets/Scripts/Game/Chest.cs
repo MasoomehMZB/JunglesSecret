@@ -7,7 +7,9 @@ public class Chest : NetworkBehaviour
     [SyncVar] public string symbolID;
 
     [SerializeField] private SpriteRenderer displayRenderer;
+    
     [SerializeField] private GameObject highlightBorder;
+    [SerializeField] Animator animator;
 
     private Vector3 originalScale;
 
@@ -34,26 +36,45 @@ public class Chest : NetworkBehaviour
 
 
     [TargetRpc]
-    public void TargetSetHighlight(NetworkConnectionToClient target, bool state)
+    public void TargetSetHighlight(NetworkConnectionToClient target, bool state, string trigger)
     {
-        SetHighlightLocal(state);
+        SetHighlightLocal(state, trigger);
     }
 
-   
-    private void SetHighlightLocal(bool state)
+    public void PlayTeleportAnim()
     {
-        Debug.Log($"[Client] Highlighting chest {name} = {state}");
+        animator.Play("TeleportAnimation", -1, 0f);
+    }
+
+    public void PlayChooseAnim()
+    {
+        animator.Play("ChooseAnimation", -1, 0f);
+    }
+
+    public void StopAnim()
+    {
+        animator.Play("Idle", -1, 0f);
+    }
+
+    private void SetHighlightLocal(bool state, string type)
+    {
         if (state)
         {
             transform.localScale = originalScale * 1.3f;
             if (highlightBorder) highlightBorder.SetActive(true);
+
+            if (type == "teleport") PlayTeleportAnim();
+            else if (type == "choose") PlayChooseAnim();
         }
         else
         {
             transform.localScale = originalScale;
             if (highlightBorder) highlightBorder.SetActive(false);
+
+            StopAnim();
         }
     }
+
 
     private void OnMouseDown()
     {
@@ -82,12 +103,6 @@ public class Chest : NetworkBehaviour
     {
         displayRenderer.sprite = null;
     }
-
-    //[ClientRpc]
-    //void RpcPlayRevealFx()
-    //{
-    //    // optional: particles/sound when permanently revealed
-    //}
 
 }
 

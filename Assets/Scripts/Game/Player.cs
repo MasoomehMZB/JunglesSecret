@@ -5,19 +5,33 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using Mirror;
 using System.Linq;
+using static UnityEngine.CullingGroup;
 
 
 public class Player : NetworkBehaviour
 {
     // Movement
     private Vector2Int currentDir = Vector2Int.zero;
+    [SyncVar]public int dirX;
+    [SyncVar]public int dirY;
     private Vector2Int lastDir = Vector2Int.zero;
-    private bool isMoving = false;
+    bool isMoving = false;
     private int requestedSteps = 0;
     private Waypoint currentWaypoint;
     private Vector3 turnStartPos;
     private int turnStartSteps;
     private Vector2Int turnStartDir;
+
+    [SyncVar(hook = nameof(OnStateChanged))]
+    public PlayerState state = PlayerState.Idle;
+
+    public enum PlayerState
+    {
+        Idle,
+        Walking,
+        WaitingChoice
+    }
+
 
     // Flags
     [SyncVar] public bool InSpawnArea = true;
@@ -48,7 +62,7 @@ public class Player : NetworkBehaviour
     Coroutine animationCoroutine;
 
 
-    #region Player Initial settings
+    #region Player Join
    
     public void SetReady(bool ready)
     {
@@ -89,34 +103,36 @@ public class Player : NetworkBehaviour
         spriteRenderer.sprite = character.idle;
     }
 
-    void OnDirectionChanged(int oldx, int newx) { /* combined hook below handles both */ }
-    void OnMovingChanged(bool oldVal, bool newVal)
+    void OnStateChanged(PlayerState oldState, PlayerState newState)
     {
-        UpdateAnimationState();
+        UpdateAnimationState(newState);
     }
 
-    void UpdateAnimationState()
+    void UpdateAnimationState(PlayerState newState)
     {
-        Debug.Log("moving satus changed");
-        //Vector2Int currentDir = new Vector2Int(dirX, dirY);
+        // stop any running animation
+        if (animationCoroutine != null) { StopCoroutine(animationCoroutine); animationCoroutine = null; }
 
-        //// stop previous animation
-        //if (animationCoroutine != null) { StopCoroutine(animationCoroutine); animationCoroutine = null; }
+        switch (newState)
+        {
+            case PlayerState.Idle:
+                if (character != null) spriteRenderer.sprite = character.idle;
+                break;
 
-        //if (!isMoving)
-        //{
-        //    // show idle sprite for current character (no animation)
-        //    if (character != null) spriteRenderer.sprite = character.idle;
-        //    return;
-        //}
+            case PlayerState.Walking:
+                if (character == null) return;
+                Sprite[] frames = character.GetWalkFrames(new Vector2Int(dirX, dirY));
+                if (frames != null && frames.Length > 0)
+                    animationCoroutine = StartCoroutine(RunFrames(frames, 10));
+                break;
 
-        //// choose frames by direction and start looping
-        //if (character == null) return;
-        //Sprite[] frames = character.GetWalkFrames(currentDir);
-        //if (frames == null || frames.Length == 0) return;
-
-        //animationCoroutine = StartCoroutine(RunFrames(frames, 8)); // 8 fps (change if needed)
+            case PlayerState.WaitingChoice:
+                // idle while waiting
+                if (character != null) spriteRenderer.sprite = character.idle;
+                break;
+        }
     }
+
 
     IEnumerator RunFrames(Sprite[] frames, float fps)
     {
@@ -129,14 +145,18 @@ public class Player : NetworkBehaviour
             yield return new WaitForSeconds(delay);
         }
     }
+
     [Server]
     public void ServerSetCharacter(int idx) => characterIndex = idx;
 
-    //[Server]
-    //public void ServerSetMovement(Vector2Int dir, bool moving)
-    //{
-    //    dirX = dir.x; dirY = dir.y; isMoving = moving;
-    //}
+    [Server]
+    void SetState(PlayerState newState, Vector2Int dir)
+    {
+        dirX = dir.x;
+        dirY = dir.y;
+        state = newState;
+    }
+
 
     #endregion
 
@@ -194,9 +214,13 @@ public class Player : NetworkBehaviour
                 yield return StartCoroutine(HandleTempWaypoint());
             }
 
+            // Show walking animation
+            SetState(PlayerState.Walking, currentDir);
+
             // Movement loop
             while (requestedSteps > 0)
             {
+
                 Vector3 startPos = transform.position;
                 Vector3 targetPos = startPos + new Vector3(currentDir.x * stepAmount, currentDir.y * stepAmount, 0f);
 
@@ -210,10 +234,13 @@ public class Player : NetworkBehaviour
 
                 if (requestedSteps == 0) continue;
 
+                SetState(PlayerState.WaitingChoice, Vector2Int.zero);
                 yield return StartCoroutine(CollidewithWaypoint((bool result) =>
                 {
                     isDeadEnd = result;
                 }));
+
+                SetState(PlayerState.Walking, currentDir);
 
                 // Handle dead end
                 if (isDeadEnd && requestedSteps >= 0 && lastDir != Vector2Int.zero)
@@ -250,6 +277,8 @@ public class Player : NetworkBehaviour
         yield return new WaitUntil(() => !guessModeActive);
         currentDir = Vector2Int.zero;
         isMoving = false;
+        SetState(PlayerState.Idle, currentDir);
+
         Debug.Log("end turn");
         GameManager.Instance.EndTurn();
     }
@@ -331,9 +360,7 @@ public class Player : NetworkBehaviour
             if (currentWaypoint != null)
             {
                 transform.position = currentWaypoint.transform.position + offset;
-
                 bool isDeadEnd = currentWaypoint.IsDeadEnd;
-
                 Chose = false;
 
                 // Ask client to choose
@@ -609,5 +636,10 @@ public class Player : NetworkBehaviour
         BoxCollider2D playerCollider = GetComponent<BoxCollider2D>();
         Vector3 bottomCenter = playerCollider.bounds.center - new Vector3(0, playerCollider.bounds.extents.y, 0);
         return bottomCenter;
+    }
+
+    public string GetColorName()
+    {
+        return character != null ? character.color : "Unknown";
     }
 }

@@ -48,38 +48,37 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0.1
-  players: []
-  PlayerParent: {fileID: 0}
   dice: {fileID: 0}
   key: {fileID: 0}
   firstTile: {fileID: 0}
-  GameOver: 0
-  cards: {fileID: 0}
-  chestTiles: []
   chestParent: {fileID: 0}
+  cards: {fileID: 0}
+  players: []
+  chestTiles: []
+  GameOver: 0
   symbolDefs:
-  - id: water
-    sprite: {fileID: -785196532, guid: 201b504580e543740ac6e4141006da1a, type: 3}
-  - id: das
-    sprite: {fileID: 840066294, guid: 201b504580e543740ac6e4141006da1a, type: 3}
-  - id: bil
-    sprite: {fileID: 485441612, guid: 201b504580e543740ac6e4141006da1a, type: 3}
-  - id: tabar
-    sprite: {fileID: -671081262, guid: 201b504580e543740ac6e4141006da1a, type: 3}
+  - id: wand
+    sprite: {fileID: 1870056173, guid: 2ba2d28bb01e8504a8bcfea5f2836240, type: 3}
+  - id: almas
+    sprite: {fileID: 1288003698, guid: 2ba2d28bb01e8504a8bcfea5f2836240, type: 3}
+  - id: shamshir
+    sprite: {fileID: -1976164832, guid: 2ba2d28bb01e8504a8bcfea5f2836240, type: 3}
+  - id: kolah
+    sprite: {fileID: 162453126, guid: 2ba2d28bb01e8504a8bcfea5f2836240, type: 3}
   - id: tir
     sprite: {fileID: -206401793, guid: 201b504580e543740ac6e4141006da1a, type: 3}
   - id: kamon
     sprite: {fileID: -556168508, guid: 201b504580e543740ac6e4141006da1a, type: 3}
-  - id: bargriz
-    sprite: {fileID: -1269856301, guid: 201b504580e543740ac6e4141006da1a, type: 3}
-  - id: bomb
-    sprite: {fileID: 88979959, guid: 201b504580e543740ac6e4141006da1a, type: 3}
-  - id: dasDovari
-    sprite: {fileID: 207702889, guid: 201b504580e543740ac6e4141006da1a, type: 3}
+  - id: shoes
+    sprite: {fileID: 679072385, guid: 2ba2d28bb01e8504a8bcfea5f2836240, type: 3}
+  - id: shield
+    sprite: {fileID: -1984214180, guid: 2ba2d28bb01e8504a8bcfea5f2836240, type: 3}
+  - id: ring
+    sprite: {fileID: -1845316811, guid: 2ba2d28bb01e8504a8bcfea5f2836240, type: 3}
   - id: tala
     sprite: {fileID: -2081041164, guid: 201b504580e543740ac6e4141006da1a, type: 3}
-  - id: tala2
-    sprite: {fileID: -2081041164, guid: 201b504580e543740ac6e4141006da1a, type: 3}
+  - id: potion
+    sprite: {fileID: 1913411061, guid: 2ba2d28bb01e8504a8bcfea5f2836240, type: 3}
 --- !u!114 &2377579975295796936
 MonoBehaviour:
   m_ObjectHideFlags: 0

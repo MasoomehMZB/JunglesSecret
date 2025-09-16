@@ -4,7 +4,8 @@ using UnityEngine;
 public class Key : NetworkBehaviour
 {
     [SerializeField] private GameObject highlightBorder;
-     Vector3 originalScale;
+
+    Vector3 originalScale;
 
     private void Awake()
     {

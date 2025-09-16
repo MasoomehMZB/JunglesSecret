@@ -10,6 +10,8 @@ public class CharacterConfig : ScriptableObject
     public Sprite[] walkLeft;
     public Sprite[] walkRight;
 
+    public string color;
+
     // helper to get frames by direction
     public Sprite[] GetWalkFrames(Vector2Int dir)
     {
