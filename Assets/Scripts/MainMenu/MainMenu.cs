@@ -3,12 +3,14 @@ using System.Net;
 using Mirror;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
 {
     [SerializeField] private TMP_InputField ipInputField;
     [SerializeField] private TMP_Text statusText;
     [SerializeField] private GameObject inputPanel;
+    [SerializeField] private Image Slash;
 
     [SerializeField] private MyNetworkManager networkManager;
 
@@ -21,9 +23,10 @@ public class MainMenu : MonoBehaviour
         // Hide IP input until Join button is clicked
         inputPanel.SetActive(false);
         statusText.text = "Welcome! \nChoose Start or Join.";
+        Slash.enabled = false;
     }
 
-    // --- HOST ---
+
     public void OnHostButton()
     {
         networkManager.StartHostGame();
@@ -35,15 +38,12 @@ public class MainMenu : MonoBehaviour
     }
 
 
-    // --- PREPARE JOIN ---
     public void OnJoinButton()
     {
         statusText.text = "Enter the Host's IP Address";
         inputPanel.SetActive(true);
         ipInputField.text = "";
     }
-
-    // --- JOIN WITH INPUT ---
 
 
     public void OnConfirmJoin()
@@ -101,6 +101,19 @@ public class MainMenu : MonoBehaviour
     {
         Application.Quit();
         Debug.Log("Quit Game");
+    }
+
+    public void  OnMusicButton()
+    {
+        if (MusicManager.Instance.IsMusicOn)
+        {
+            MusicManager.Instance.StopMusic();
+        }
+        else
+        {
+            MusicManager.Instance.PlayMusic();
+        }
+        Slash.enabled = !MusicManager.Instance.IsMusicOn;
     }
 }
 

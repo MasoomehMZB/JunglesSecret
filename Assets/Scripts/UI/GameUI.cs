@@ -15,6 +15,8 @@ public class GameUI : NetworkBehaviour
     public Image CardWonInfoSlot;
     public TMP_Text CardWonInfoText;
     public Button backButton;
+    [SerializeField] private Image Slash;
+
 
     private Dictionary<Player, Image> playerToSlot = new Dictionary<Player, Image>();
 
@@ -34,6 +36,9 @@ public class GameUI : NetworkBehaviour
 
         if (backButton != null)
             backButton.onClick.AddListener(OnBackClicked);
+
+        Slash.enabled = !MusicManager.Instance.IsMusicOn;
+
     }
 
     [ClientRpc]
@@ -116,6 +121,19 @@ public class GameUI : NetworkBehaviour
             NetworkManager.singleton.StopClient();
         else
             UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+    }
+
+    public void OnMusicButton()
+    {
+        if (MusicManager.Instance.IsMusicOn)
+        {
+            MusicManager.Instance.StopMusic();
+        }
+        else
+        {
+            MusicManager.Instance.PlayMusic();
+        }
+        Slash.enabled = !MusicManager.Instance.IsMusicOn;
     }
 
 }

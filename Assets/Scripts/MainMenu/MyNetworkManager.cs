@@ -36,8 +36,7 @@ public class MyNetworkManager : NetworkManager
             return;
         }
 
-        //networkAddress = ip;
-        networkAddress = "localhost";
+        networkAddress = ip;
         StartClient();
         Debug.Log($"Trying to connect to server at: {ip}");
     }
