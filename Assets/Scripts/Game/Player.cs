@@ -201,7 +201,7 @@ public class Player : NetworkBehaviour
             // Get the first direction :
             // On the waypoint
 
-            Debug.Log("First direction and requested steps: " + currentDir + requestedSteps);
+           // Debug.Log("First direction and requested steps: " + currentDir + requestedSteps);
 
             yield return StartCoroutine(CollidewithWaypoint((bool result) =>
             {
@@ -355,7 +355,7 @@ public class Player : NetworkBehaviour
         if (wpCollider != null)
         {           
             currentWaypoint = wpCollider.GetComponent<Waypoint>();
-            Debug.Log($"collide with {currentWaypoint}");
+            //Debug.Log($"collide with {currentWaypoint}");
 
             if (currentWaypoint != null)
             {
@@ -384,7 +384,7 @@ public class Player : NetworkBehaviour
         GameObject tempGO = Instantiate(waypointPrefab, bottomCenter, Quaternion.identity);
         Waypoint tempWaypoint = tempGO.GetComponent<Waypoint>();
 
-        Debug.Log("inside HandleTempWaypoint");
+        //Debug.Log("inside HandleTempWaypoint");
 
         List<DirectionName> dirOptions = (lastDir == Vector2Int.up || lastDir == Vector2Int.down)
             ? new List<DirectionName> { DirectionName.Up, DirectionName.Down }
@@ -413,7 +413,7 @@ public class Player : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        Debug.Log("inside TargetShowWaypointUI");
+        //Debug.Log("inside TargetShowWaypointUI");
 
         Waypoint temp = Instantiate(waypointPrefab, pos, Quaternion.identity).GetComponent<Waypoint>();
         temp.SetAllowedDirections(options);
@@ -449,18 +449,18 @@ public class Player : NetworkBehaviour
     {
         Vector3 bottomCenter = GetPlayerBottomCenter();
         Collider2D hit = Physics2D.OverlapCircle(bottomCenter, 0.2f, LayerMask.GetMask("Special"));
-        Debug.Log($"collided with {hit}");
+       // Debug.Log($"collided with {hit}");
         if (hit)
         {
             if (hit.TryGetComponent<Chest>(out Chest chest))
             {
-                Debug.Log($"{name} landed on chest {chest.symbolID}");
+                //Debug.Log($"{name} landed on chest {chest.symbolID}");
                 chest.OnPlayerLanded(this);
                 lastChestTile = chest;
             }
             else if (hit.TryGetComponent<Key>(out Key key))
             {
-                Debug.Log($"{name} landed on KEY");
+                //Debug.Log($"{name} landed on KEY");
                 OnKeyTile = true;
                 key.OnPlayerLanded(this);
             }
@@ -475,7 +475,7 @@ public class Player : NetworkBehaviour
     [Command]
     public void CmdSelectChest(uint chestNetId)
     {
-        Debug.Log($"[Server] CmdSelectChest received from player {netId} for chest {chestNetId}");
+        //Debug.Log($"[Server] CmdSelectChest received from player {netId} for chest {chestNetId}");
 
         // Validate: find the chest on the server
         if (!NetworkServer.spawned.TryGetValue(chestNetId, out NetworkIdentity chestIdentity) || chestIdentity == null)
@@ -498,7 +498,7 @@ public class Player : NetworkBehaviour
     [Command]
     public void CmdSelectKey(uint keyNetId)
     {
-        Debug.Log($"[Server] CmdSelectKey received from player {netId} for key {keyNetId}");
+        //Debug.Log($"[Server] CmdSelectKey received from player {netId} for key {keyNetId}");
 
         if (!NetworkServer.spawned.TryGetValue(keyNetId, out NetworkIdentity keyIdentity) || keyIdentity == null)
         {
@@ -532,8 +532,6 @@ public class Player : NetworkBehaviour
             Debug.Log("You guessed correctly!");
         else
             Debug.Log("Wrong guess!");
-
-        // TODO: trigger animations, sounds, UI feedback
     }
 
     #endregion
@@ -544,10 +542,10 @@ public class Player : NetworkBehaviour
     void HitAnotherPlayer()
     {
         if (InSpawnArea) {
-            Debug.Log("In hit, In Spawn");
+            //Debug.Log("In hit, In Spawn");
             return; }
 
-        Debug.Log("In hit");
+        //Debug.Log("In hit");
 
         // Get all colliders in range on "Player" layer
         Collider2D[] colliders = Physics2D.OverlapCircleAll(
@@ -565,7 +563,7 @@ public class Player : NetworkBehaviour
             Player opponent = col.GetComponent<Player>();
             if (opponent != null)
             {
-                Debug.Log($"Player {gameObject.name} hit {opponent.gameObject.name}");
+                //Debug.Log($"Player {gameObject.name} hit {opponent.gameObject.name}");
                 GameManager.Instance.PunishPlayer(opponent);
 
                 // Notify all clients for visual feedback
@@ -578,7 +576,7 @@ public class Player : NetworkBehaviour
     [ClientRpc]
     public void RpcShowPlayerHit(uint opponentNetId)
     {
-        Debug.Log($"[Client] Player {netIdentity.netId} hit player {opponentNetId}");
+        //Debug.Log($"[Client] Player {netIdentity.netId} hit player {opponentNetId}");
 
         // Optionally: flash opponent, play sound, etc.
         // (You can move this logic to a Player FX script later)

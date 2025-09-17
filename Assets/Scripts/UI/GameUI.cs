@@ -10,61 +10,102 @@ public class GameUI : NetworkBehaviour
 
     [Header("UI References")]
     public List<Image> scoreSlots = new List<Image>();   
-    public TMP_Text infoText;                           
-    public Button backButton;                            
+    public Image TurnInfoSlot;
+    public TMP_Text TurnInfoText;
+    public Image CardWonInfoSlot;
+    public TMP_Text CardWonInfoText;
+    public Button backButton;
+
+    private Dictionary<Player, Image> playerToSlot = new Dictionary<Player, Image>();
 
     private void Awake()
     {
         Instance = this;
-        // Hide all score slots initially
-        foreach (var slot in scoreSlots)
-            slot.gameObject.SetActive(false);
+
+        TurnInfoSlot.enabled = false;
+        CardWonInfoSlot.enabled = false;
+
+        foreach (var img in scoreSlots)
+        {
+            img.enabled = false;
+            var txt = img.GetComponentInChildren<TMP_Text>();
+            if (txt != null) txt.text = "";
+        }
 
         if (backButton != null)
             backButton.onClick.AddListener(OnBackClicked);
     }
 
     [ClientRpc]
-    public void RpcUpdateAllScores()
+    public void InitScores(List<Player> players)
     {
-        var players = GameManager.Instance.players;
+        playerToSlot.Clear();
 
-        for (int i = 0; i < scoreSlots.Count; i++)
+        for (int i = 0; i < players.Count && i < scoreSlots.Count; i++)
         {
-            if (i < players.Count)
-            {
-                Player p = players[i];
-                var slot = scoreSlots[i];
-                slot.gameObject.SetActive(true);
+            var player = players[i];
+            var slot = scoreSlots[i];
 
-                CharacterConfig cfg = CharacterDatabase.Instance.Get(p.characterIndex);
-                if (cfg != null)
-                {
-                    // Update text (cardsWon)
-                    TMP_Text txt = slot.GetComponentInChildren<TMP_Text>();
-                    if (txt != null)
-                        txt.text = $"{cfg.color}: {p.cardsWon.ToString()}";
-                }
-            }
-            else
-            {
-                scoreSlots[i].gameObject.SetActive(false);
-            }
+            slot.enabled = true;
+
+            // show initial score
+            var txt = slot.GetComponentInChildren<TMP_Text>();
+            if (txt != null)
+                txt.text = $"{player.GetColorName()}: {player.cardsWon}";
+
+            playerToSlot[player] = slot;
+        }
+    }
+
+    [ClientRpc]
+    public void UpdateScoreRpc(int score, Player player)
+    {
+        if (playerToSlot.TryGetValue(player, out var slot))
+        {
+            var txt = slot.GetComponentInChildren<TMP_Text>();
+            if (txt != null)
+                txt.text = $"{player.GetColorName()}: {score}";
         }
     }
 
     [TargetRpc]
-    public void TargetShowTurnMessage(NetworkConnection target)
+    public void TargetShowTurnRpc(NetworkConnection target, bool isTurn)
     {
-        if (infoText != null)
-            infoText.text = "Your Turn!";
+        Debug.Log($"in TargetShowTurnRpc is turn = {isTurn}, {target}");
+        if (isTurn)
+
+            UpdateInfoLocal("Your Turn", true);
+        else
+        {
+            UpdateInfoLocal("", false);
+        }
+    }
+
+    [Server]
+    public void TargetShowTurnHost(bool isTurn)
+    {
+        Debug.Log("in TargetShowTurnRpc");
+        if (isTurn)
+
+            UpdateInfoLocal("Your Turn", true);
+        else
+        {
+            UpdateInfoLocal("", false);
+        }
+
+    }
+
+    void UpdateInfoLocal(string msg, bool state)
+    {
+        TurnInfoSlot.enabled = state;
+        TurnInfoText.text = msg;
     }
 
     [ClientRpc]
     public void RpcShowCardWon(string colorName, int remaining)
     {
-        if (infoText != null)
-            infoText.text = $"{colorName} won a card, remaining {remaining}";
+        CardWonInfoSlot.enabled = true;
+        CardWonInfoText.text = $"{colorName} won a card, remaining {remaining}";
     }
 
     void OnBackClicked()

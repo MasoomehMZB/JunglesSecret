@@ -88,7 +88,7 @@ public class Chest : NetworkBehaviour
         
         // Forward the chest click to the player's Command (send chest netId)
         uint chestId = netId; 
-        Debug.Log($"[Client] Forwarding chest click to local player. chestNetId={chestId}");
+        //Debug.Log($"[Client] Forwarding chest click to local player. chestNetId={chestId}");
         localPlayer.CmdSelectChest(chestId);
     }
 

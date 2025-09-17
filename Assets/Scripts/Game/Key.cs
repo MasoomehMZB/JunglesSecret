@@ -28,7 +28,7 @@ public class Key : NetworkBehaviour
         if (localPlayer == null) return;
 
         uint keyId = netId;
-        Debug.Log($"[Client] Forwarding key click to local player. keyNetId={keyId}");
+       // Debug.Log($"[Client] Forwarding key click to local player. keyNetId={keyId}");
         localPlayer.CmdSelectKey(keyId);
     }
 

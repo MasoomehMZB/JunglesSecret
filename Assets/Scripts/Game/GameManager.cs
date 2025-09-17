@@ -2,9 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Mirror;
 using Unity.VisualScripting;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
 public class GameManager : NetworkBehaviour
 {
@@ -24,7 +26,7 @@ public class GameManager : NetworkBehaviour
     [SerializeField] private List<Chest> chestTiles = new List<Chest>();
     
     // Game states / variables
-    [SyncVar(hook = nameof(OnCurrentPlayerChanged))] private uint currentPlayerNetId; 
+    [SyncVar] private uint currentPlayerNetId; 
     [SyncVar] public bool GameOver = false;
     private Player currentGuesser;
     private Player currentPlayer;
@@ -212,17 +214,27 @@ public class GameManager : NetworkBehaviour
         currentPlayer = players[currentPlayerIndex];
         currentPlayerNetId = currentPlayer.netIdentity.netId;
 
+        if (currentPlayer.connectionToClient != null)
+        {
+            GameUI.Instance.TargetShowTurnRpc(currentPlayer.connectionToClient, true);
+        }
+        else
+        {
+            // Host player (no connectionToClient)
+            GameUI.Instance.TargetShowTurnHost(true);
+        }
+
         // Enable only the current player's UI
         currentPlayer.TargetSetDiceButtonsActive(currentPlayer.connectionToClient, true);
 
         // Roll dice server-side
         dice.Roll();
 
-        Debug.Log($"--- {currentPlayer.name}'s Turn (netId {currentPlayerNetId}) ---");
+        //Debug.Log($"--- {currentPlayer.name}'s Turn (netId {currentPlayerNetId}) ---");
 
         if (dice.IsDouble())
         {
-            Debug.Log("Double rolled! Teleport mode activated.");
+            //Debug.Log("Double rolled! Teleport mode activated.");
             EnableTeleportMode();
         }
     }
@@ -236,7 +248,7 @@ public class GameManager : NetworkBehaviour
 
         if (_teleportModeActive) DisableTeleportModeServer();
 
-        Debug.Log($"Server: currentPlayer chose {chosenSteps} steps");
+        //Debug.Log($"Server: currentPlayer chose {chosenSteps} steps");
 
         waitingForMovementChoice = false;
 
@@ -248,15 +260,24 @@ public class GameManager : NetworkBehaviour
     [Server]
     public void EndTurn()
     {
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
-        StartTurn();
-    }
+        if (GameOver)
+        {
+            EndGame();
+        }
 
-    // SyncVar hook for currentPlayer changes (DELETE)
-    void OnCurrentPlayerChanged(uint oldVal, uint newVal)
-    {
-        // called on clients & server when current player changes
-        Debug.Log($"OnCurrentPlayerChanged: {newVal}");
+        if (currentPlayer.connectionToClient != null)
+        {
+            GameUI.Instance.TargetShowTurnRpc(currentPlayer.connectionToClient, false);
+        }
+        else
+        {
+            // Host player (no connectionToClient)
+            GameUI.Instance.TargetShowTurnHost(false);
+        }
+
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
+
+        StartTurn();
     }
 
     #endregion
@@ -307,7 +328,7 @@ public class GameManager : NetworkBehaviour
     public void DisableTeleportModeServer()
     {
         _teleportModeActive = false;
-        Debug.Log("DisableTeleportModeServer called!");
+        //Debug.Log("DisableTeleportModeServer called!");
         if (currentPlayer != null)
         {
             foreach (var chest in chestTiles)
@@ -329,7 +350,7 @@ public class GameManager : NetworkBehaviour
 
         // Wait so players see it
         yield return new WaitForSeconds(1.5f);
-        Debug.Log($"chosen = {chosenChest.symbolID} , card = {GetCurrentCardSymbol()}");
+        //Debug.Log($"chosen = {chosenChest.symbolID} , card = {GetCurrentCardSymbol()}");
         if (chosenChest.symbolID == GetCurrentCardSymbol())
         {
             Debug.Log($"{guesser.name} guessed correctly!");
@@ -413,9 +434,10 @@ public class GameManager : NetworkBehaviour
     private void TryClaimCard(Player player, Chest chest)
     {
         player.cardsWon++;
-        // Reveal next card (server logic + tell clients)
+        GameUI.Instance.UpdateScoreRpc(player.cardsWon, player);
+        GameUI.Instance.RpcShowCardWon(player.GetColorName(), cards.remainingCards);
+       // GameUI.Instance.UpdateInfoLocal($"{player.GetColorName()} won a card, remaining {cards.remainingCards}");
         cards.RevealCard();
-        //RpcUpdateCurrentCard(cards.CurrentCard.id);
     }
 
     #endregion
@@ -445,8 +467,8 @@ public class GameManager : NetworkBehaviour
     [Server]
     public void EndGame()
     {
-        GameOver = true;
-        Debug.Log("Game Over!");
+
+        StopAllCoroutines();
 
         if (players.Count == 0)
         {
@@ -454,22 +476,20 @@ public class GameManager : NetworkBehaviour
             return;
         }
 
-        int maxScore = players.Max(p => p.cardsWon);
-        List<Player> winners = players.Where(p => p.cardsWon == maxScore).ToList();
+        Player winner = players.OrderByDescending(p => p.cardsWon).FirstOrDefault();
 
-        foreach (Player winner in winners)
-        {
-            Debug.Log($" Winner: {winner.name} with {winner.cardsWon} points");
-        }
+        List<Player> sortedPlayers = players.OrderByDescending(p => p.cardsWon).ToList();
 
-        RpcShowEndGame(winners.Select(w => w.name).ToArray());
+        RpcShowEndGame(sortedPlayers, winner.characterIndex);
     }
 
     [ClientRpc]
-    void RpcShowEndGame(string[] winnerNames)
+    void RpcShowEndGame(List<Player> sortedPlayers, int winnerIndex)
     {
-        // On each client show results UI
-        Debug.Log("Winners: " + string.Join(", ", winnerNames));
+        if (GameOverUI.Instance != null)
+            GameOverUI.Instance.ShowEndGame(sortedPlayers, winnerIndex);
+        else
+            Debug.LogError("GameOverUI not found on client!");
     }
 
     #endregion

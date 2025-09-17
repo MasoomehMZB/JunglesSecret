@@ -16,10 +16,10 @@ public class Cards : NetworkBehaviour
     [Server]
     public void RevealCard()
     {
-        if (cardDeck.Count == 0)
+        if (cardDeck.Count == 10)
         {
             Debug.Log("No more cards left.");
-            GameManager.Instance.EndGame(); // Trigger end game
+            GameManager.Instance.GameOver = true;
             return;
         }
 
@@ -29,7 +29,7 @@ public class Cards : NetworkBehaviour
 
         OnCardChanged(null, currentCardId);
 
-        Debug.Log($"Current Card Revealed: {currentCardId}");
+        //Debug.Log($"Current Card Revealed: {currentCardId}");
     }
 
     void OnCardChanged(string oldId, string newId)

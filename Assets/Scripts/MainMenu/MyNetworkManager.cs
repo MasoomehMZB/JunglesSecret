@@ -104,8 +104,6 @@ public class MyNetworkManager : NetworkManager
         int chosenCharacter = availableIndices[randomIndex];
         availableIndices.RemoveAt(randomIndex);
 
-        Debug.Log($"the chosen one is{chosenCharacter} remaning {availableIndices.Count}");
-
         playerCharacters[player] = chosenCharacter;
         return chosenCharacter;
     }

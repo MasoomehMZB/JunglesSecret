@@ -35,7 +35,7 @@ public class Waypoint : MonoBehaviour
             return;
         }
 
-        Debug.Log($"ShowChoicesUI called at {name}, IsDeadEnd={IsDeadEnd}, allowedDirs={allowedDirSet.Count}, currentDir = {currentDir}");
+        //Debug.Log($"ShowChoicesUI called at {name}, IsDeadEnd={IsDeadEnd}, allowedDirs={allowedDirSet.Count}, currentDir = {currentDir}");
 
         if (IsDeadEnd) {
             var autoDir = allowedDirSet.First();
@@ -79,7 +79,7 @@ public class Waypoint : MonoBehaviour
             }
         }
 
-        Debug.Log($"UI instantioated {currentUI}, with btns {buttons.Count()} ");
+       // Debug.Log($"UI instantioated {currentUI}, with btns {buttons.Count()} ");
     }
 
     void OnDrawGizmos()

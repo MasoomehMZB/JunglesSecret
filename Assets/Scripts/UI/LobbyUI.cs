@@ -15,6 +15,7 @@ public class LobbyUI : NetworkBehaviour
     public Button startButton; 
     public TMP_Text ReadyCount;
     public Image avatarImage;
+    [SerializeField] private TMP_Text ipText;
     //public GameObject gameUI;
 
     [SyncVar (hook = nameof(OnGameStarted))] bool gameStarted = false;
@@ -33,6 +34,15 @@ public class LobbyUI : NetworkBehaviour
         // Only host sees Start button
         startButton.gameObject.SetActive(NetworkServer.active);
         AddAvatar();
+
+        if (NetworkServer.active)
+        {
+            ipText.text = $"Host IP: {GameSession.Instance.hostIP}";
+        }
+        else
+        {
+            ipText.text = "";
+        }
     }
 
     void OnReadyClicked()
@@ -57,10 +67,10 @@ public class LobbyUI : NetworkBehaviour
     {
         if (AllPlayersReady())
         {
-            lobbyPanel.SetActive(false); 
-            gameStarted = true;
-            //gameUI.SetActive(true);
+            lobbyPanel.SetActive(false);
+            GameUI.Instance.InitScores(GameManager.Instance.players);
             GameManager.Instance.StartTurn();
+            gameStarted = true;
         }
         else
         {

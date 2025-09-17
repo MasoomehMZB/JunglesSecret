@@ -38,7 +38,7 @@ public class MainMenu : MonoBehaviour
     // --- PREPARE JOIN ---
     public void OnJoinButton()
     {
-        statusText.text = "Enter the Host's IP Address:";
+        statusText.text = "Enter the Host's IP Address";
         inputPanel.SetActive(true);
         ipInputField.text = ""; 
     }

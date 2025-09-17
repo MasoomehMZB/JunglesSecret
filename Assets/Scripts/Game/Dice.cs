@@ -35,7 +35,7 @@ public class Dice : NetworkBehaviour
     {
         LastRoll1 = rng.Next(1, 7);
         LastRoll2 = rng.Next(1, 7);
-        Debug.Log($"dice rolled {LastRoll1} , {LastRoll2}");
+        //Debug.Log($"dice rolled {LastRoll1} , {LastRoll2}");
     }
 
     void OnRollChanged1(int oldValue, int newValue)
@@ -53,7 +53,7 @@ public class Dice : NetworkBehaviour
     {
         if (LastRoll1 == 0 && LastRoll2 == 0)
         {
-            Debug.LogWarning($"Dice not rolled yet, ignoring choice{LastRoll1}{LastRoll2}");
+            //Debug.LogWarning($"Dice not rolled yet, ignoring choice{LastRoll1}{LastRoll2}");
             return;
         }
 
