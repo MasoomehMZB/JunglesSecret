@@ -1,14 +1,14 @@
-using UnityEngine;
-using TMPro;
-using Mirror;
-using System.Net;
 using System.Collections;
+using System.Net;
+using Mirror;
+using TMPro;
+using UnityEngine;
 
 public class MainMenu : MonoBehaviour
 {
     [SerializeField] private TMP_InputField ipInputField;
-    [SerializeField] private TMP_Text statusText;   
-    [SerializeField] private GameObject inputPanel; 
+    [SerializeField] private TMP_Text statusText;
+    [SerializeField] private GameObject inputPanel;
 
     [SerializeField] private MyNetworkManager networkManager;
 
@@ -40,7 +40,7 @@ public class MainMenu : MonoBehaviour
     {
         statusText.text = "Enter the Host's IP Address";
         inputPanel.SetActive(true);
-        ipInputField.text = ""; 
+        ipInputField.text = "";
     }
 
     // --- JOIN WITH INPUT ---

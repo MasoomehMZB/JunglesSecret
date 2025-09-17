@@ -1,11 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using Mirror;
-using System.Security.Cryptography;
+using UnityEngine;
 
 public class Cards : NetworkBehaviour
-{ 
+{
     public SpriteRenderer displayRenderer;
     public Queue<string> cardDeck = new Queue<string>(); // shuffled deck
 
@@ -16,7 +14,7 @@ public class Cards : NetworkBehaviour
     [Server]
     public void RevealCard()
     {
-        if (cardDeck.Count == 10)
+        if (cardDeck.Count == 8)
         {
             Debug.Log("No more cards left.");
             GameManager.Instance.GameOver = true;

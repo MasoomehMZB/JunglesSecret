@@ -2,11 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Mirror;
-using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 public class GameManager : NetworkBehaviour
 {
@@ -22,16 +19,16 @@ public class GameManager : NetworkBehaviour
     [SerializeField] private Cards cards;
 
     // Game Object Lists
-    public List<Player> players = new List<Player>(); 
+    public List<Player> players = new List<Player>();
     [SerializeField] private List<Chest> chestTiles = new List<Chest>();
-    
+
     // Game states / variables
-    [SyncVar] private uint currentPlayerNetId; 
+    [SyncVar] private uint currentPlayerNetId;
     [SyncVar] public bool GameOver = false;
     private Player currentGuesser;
     private Player currentPlayer;
     private int currentPlayerIndex = 0;
-    
+
     // Symbol allocations
     [Serializable]
     public class SymbolDef { public string id; public Sprite sprite; }
@@ -84,7 +81,7 @@ public class GameManager : NetworkBehaviour
 
         if (cards == null)
             cards = FindObjectOfType<Cards>();
-        
+
         if (key == null)
             key = FindObjectOfType<Key>();
     }
@@ -152,9 +149,9 @@ public class GameManager : NetworkBehaviour
             chest.symbolID = chosenSymbol.id;
 
             // rename the GameObject in editor for easier debugging (optional)
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             chest.gameObject.name = $"Chest_{chosenSymbol.id}";
-            #endif
+#endif
 
             // register mapping (server-side)
             if (!symbolToChest.ContainsKey(chosenSymbol.id))
@@ -306,7 +303,7 @@ public class GameManager : NetworkBehaviour
 
         foreach (var chest in chestTiles)
         {
-            chest.TargetSetHighlight(currentPlayer.connectionToClient, false, "choose"); 
+            chest.TargetSetHighlight(currentPlayer.connectionToClient, false, "choose");
         }
     }
 
@@ -339,7 +336,7 @@ public class GameManager : NetworkBehaviour
 
         waitingForMovementChoice = false;
     }
-    
+
 
     // Called when player chooses a chest
     [Server]
@@ -403,8 +400,8 @@ public class GameManager : NetworkBehaviour
     [ClientRpc]
     void RpcTeleportPlayer(uint playerNetId, Vector3 newPos)
     {
-        if  (NetworkServer.spawned.TryGetValue(playerNetId, out var identity))
-            {
+        if (NetworkServer.spawned.TryGetValue(playerNetId, out var identity))
+        {
             Player p = identity.GetComponent<Player>();
             if (p != null)
             {
@@ -436,7 +433,6 @@ public class GameManager : NetworkBehaviour
         player.cardsWon++;
         GameUI.Instance.UpdateScoreRpc(player.cardsWon, player);
         GameUI.Instance.RpcShowCardWon(player.GetColorName(), cards.remainingCards);
-       // GameUI.Instance.UpdateInfoLocal($"{player.GetColorName()} won a card, remaining {cards.remainingCards}");
         cards.RevealCard();
     }
 
@@ -457,8 +453,6 @@ public class GameManager : NetworkBehaviour
         player.transform.position = SpawnArea.Instance.GetSpawnPosition(playerIndex);
         player.InSpawnArea = true;
 
-        // also notify that player (target feedback) if needed:
-        player.RpcShowPlayerHit(player.netId);
     }
 
     #endregion

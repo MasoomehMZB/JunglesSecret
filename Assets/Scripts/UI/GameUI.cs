@@ -9,7 +9,7 @@ public class GameUI : NetworkBehaviour
     public static GameUI Instance;
 
     [Header("UI References")]
-    public List<Image> scoreSlots = new List<Image>();   
+    public List<Image> scoreSlots = new List<Image>();
     public Image TurnInfoSlot;
     public TMP_Text TurnInfoText;
     public Image CardWonInfoSlot;
@@ -71,7 +71,7 @@ public class GameUI : NetworkBehaviour
     [TargetRpc]
     public void TargetShowTurnRpc(NetworkConnection target, bool isTurn)
     {
-        Debug.Log($"in TargetShowTurnRpc is turn = {isTurn}, {target}");
+        //Debug.Log($"in TargetShowTurnRpc is turn = {isTurn}, {target}");
         if (isTurn)
 
             UpdateInfoLocal("Your Turn", true);

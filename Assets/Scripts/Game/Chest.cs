@@ -1,4 +1,3 @@
-using System.Collections;
 using Mirror;
 using UnityEngine;
 
@@ -7,7 +6,7 @@ public class Chest : NetworkBehaviour
     [SyncVar] public string symbolID;
 
     [SerializeField] private SpriteRenderer displayRenderer;
-    
+
     [SerializeField] private GameObject highlightBorder;
     [SerializeField] Animator animator;
 
@@ -81,13 +80,13 @@ public class Chest : NetworkBehaviour
         if (!NetworkClient.active) return;
 
         var conn = NetworkClient.connection;
-        if (conn == null || conn.identity == null)return;
-        
+        if (conn == null || conn.identity == null) return;
+
         Player localPlayer = conn.identity.GetComponent<Player>();
         if (localPlayer == null) return;
-        
+
         // Forward the chest click to the player's Command (send chest netId)
-        uint chestId = netId; 
+        uint chestId = netId;
         //Debug.Log($"[Client] Forwarding chest click to local player. chestNetId={chestId}");
         localPlayer.CmdSelectChest(chestId);
     }

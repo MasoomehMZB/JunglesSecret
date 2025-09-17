@@ -1,7 +1,7 @@
-using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 
 public enum DirectionName
@@ -13,11 +13,11 @@ public enum DirectionName
 }
 public class Waypoint : MonoBehaviour
 {
-    private List<Vector2Int> allowedDirVectors;  
-    public GameObject choiceUIPrefab;     
+    private List<Vector2Int> allowedDirVectors;
+    public GameObject choiceUIPrefab;
     private GameObject currentUI;
     public bool IsDeadEnd = false;
-
+ 
     public List<DirectionName> allowedDirections;
     public HashSet<Vector2Int> allowedDirSet;
 
@@ -56,7 +56,7 @@ public class Waypoint : MonoBehaviour
         if (canvas != null)
             canvas.worldCamera = Camera.main;
 
-        
+
 
         // Assume prefab has a script "DirectionButton" on each button with setup method
         DirectionArrow[] buttons = currentUI.GetComponentsInChildren<DirectionArrow>();
@@ -68,7 +68,8 @@ public class Waypoint : MonoBehaviour
             if (allowedDirSet.Contains(btn.direction) && btn.direction != -currentDir)
             {
 
-                btn.Setup(() => {
+                btn.Setup(() =>
+                {
                     onDirectionChosen(btn.direction);
                     Destroy(currentUI); // remove UI after choice
                 });
@@ -79,7 +80,7 @@ public class Waypoint : MonoBehaviour
             }
         }
 
-       // Debug.Log($"UI instantioated {currentUI}, with btns {buttons.Count()} ");
+        // Debug.Log($"UI instantioated {currentUI}, with btns {buttons.Count()} ");
     }
 
     void OnDrawGizmos()

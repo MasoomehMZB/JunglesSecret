@@ -1,13 +1,13 @@
-using UnityEngine;
-using Mirror;
 using System.Collections.Generic;
+using Mirror;
+using UnityEngine;
 
 public class MyNetworkManager : NetworkManager
 {
     public GameObject gameManagerPrefab;
 
     private Dictionary<NetworkIdentity, int> playerCharacters = new Dictionary<NetworkIdentity, int>();
-    private List<int> availableIndices = new List<int> {0, 1, 2, 3, 4};
+    private List<int> availableIndices = new List<int> { 0, 1, 2, 3, 4 };
 
     public override void OnStartServer()
     {
@@ -45,24 +45,28 @@ public class MyNetworkManager : NetworkManager
     // Called on server when a new player connects
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
-        Vector3 spawnPos = SpawnArea.Instance.GetSpawnPosition(numPlayers);
-        GameObject playerObj = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
-
+        GameObject playerObj = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
         Player player = playerObj.GetComponent<Player>();
-        Debug.Log($"trying to add player {conn}, GO = {player}");
-
 
         if (player != null)
         {
             player.name = $"Player_{numPlayers + 1}";
 
-            int randomIndex = AssignCharacterToPlayer(player.netIdentity);
-            player.ServerSetCharacter(randomIndex);
+            int characterIndex = AssignCharacterToPlayer(player.netIdentity);
+            if (characterIndex == -1)
+            {
+                Debug.LogError("No available characters to assign!");
+            }
+            else
+            {
+                player.ServerSetCharacter(characterIndex);
 
-            // Add to GameManager’s player list
+                // Spawn at slot matching the character index
+                Vector3 spawnPos = SpawnArea.Instance.GetSpawnPosition(characterIndex);
+                playerObj.transform.position = spawnPos;
+            }
+
             GameManager.Instance.players.Add(player);
-            Debug.Log($"Added{player.netId}, total players = {GameManager.Instance.players.Count}");
-            
         }
 
         // Add to connection

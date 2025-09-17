@@ -1,9 +1,9 @@
+using System.Collections.Generic;
+using System.Linq;
 using Mirror;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Linq;
-using TMPro;
-using System.Collections.Generic;
 
 
 public class GameOverUI : MonoBehaviour
@@ -56,7 +56,7 @@ public class GameOverUI : MonoBehaviour
     {
         string result = string.Join(
             "\n",
-            scores.Select(kvp => $"{kvp.Key}: {kvp.Value}") 
+            scores.Select(kvp => $"{kvp.Key}: {kvp.Value}")
         );
         scoresText.text = result;
     }

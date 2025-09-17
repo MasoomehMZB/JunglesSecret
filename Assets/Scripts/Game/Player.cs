@@ -2,10 +2,7 @@
 using System.Collections;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using Mirror;
-using System.Linq;
-using static UnityEngine.CullingGroup;
 
 
 public class Player : NetworkBehaviour
@@ -197,11 +194,11 @@ public class Player : NetworkBehaviour
             InSpawnArea = false;
             ExitKeyTile();
             ExitChestTile();
-            
+
             // Get the first direction :
             // On the waypoint
 
-           // Debug.Log("First direction and requested steps: " + currentDir + requestedSteps);
+            // Debug.Log("First direction and requested steps: " + currentDir + requestedSteps);
 
             yield return StartCoroutine(CollidewithWaypoint((bool result) =>
             {
@@ -234,7 +231,6 @@ public class Player : NetworkBehaviour
 
                 if (requestedSteps == 0) continue;
 
-                SetState(PlayerState.WaitingChoice, Vector2Int.zero);
                 yield return StartCoroutine(CollidewithWaypoint((bool result) =>
                 {
                     isDeadEnd = result;
@@ -246,7 +242,8 @@ public class Player : NetworkBehaviour
                 if (isDeadEnd && requestedSteps >= 0 && lastDir != Vector2Int.zero)
                 {
                     RevertToPreviousState(turnStartPos, turnStartSteps, turnStartDir);
-                    yield return new WaitForSeconds(0.09f);
+                    yield return new WaitForSeconds(0.5f);
+                    Physics2D.SyncTransforms();
 
                     ServerStartMove(turnStartSteps);
                     yield break;
@@ -314,6 +311,7 @@ public class Player : NetworkBehaviour
         lastDir = previousDir;
         isMoving = false;
         currentWaypoint = null;
+        SetState(PlayerState.Idle, currentDir);
 
         // Force clients to snap instantly as well
         RpcForceSnap(previousPos);
@@ -361,10 +359,20 @@ public class Player : NetworkBehaviour
             {
                 transform.position = currentWaypoint.transform.position + offset;
                 bool isDeadEnd = currentWaypoint.IsDeadEnd;
+                bool waypointHasUI = currentWaypoint.allowedDirections.Count > 2;
+
                 Chose = false;
+
+
+                Debug.Log($"waypointHasUI = {waypointHasUI}");
 
                 // Ask client to choose
                 TargetShowWaypointUI(connectionToClient, currentWaypoint.transform.position, currentWaypoint.allowedDirections, currentDir);
+
+                if (waypointHasUI)
+                    SetState(PlayerState.WaitingChoice, Vector2Int.zero);
+                else
+                    SetState(PlayerState.WaitingChoice, currentDir);
 
                 // Stop movement until client responds
                 yield return new WaitUntil(() => Chose);
@@ -374,7 +382,7 @@ public class Player : NetworkBehaviour
             }
         }
 
-        onResult?.Invoke(false); // Not a deadend
+        onResult?.Invoke(false);
     }
 
     [Server]
@@ -565,21 +573,9 @@ public class Player : NetworkBehaviour
             {
                 //Debug.Log($"Player {gameObject.name} hit {opponent.gameObject.name}");
                 GameManager.Instance.PunishPlayer(opponent);
-
-                // Notify all clients for visual feedback
-                RpcShowPlayerHit(opponent.netIdentity.netId);
             }
 
         }
-    }
-
-    [ClientRpc]
-    public void RpcShowPlayerHit(uint opponentNetId)
-    {
-        //Debug.Log($"[Client] Player {netIdentity.netId} hit player {opponentNetId}");
-
-        // Optionally: flash opponent, play sound, etc.
-        // (You can move this logic to a Player FX script later)
     }
 
     #endregion

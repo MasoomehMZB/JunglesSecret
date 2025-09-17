@@ -1,9 +1,8 @@
+using System.Linq;
 using Mirror;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Linq;
-using TMPro;
-using System.Collections;
 
 public class LobbyUI : NetworkBehaviour
 {
@@ -12,13 +11,13 @@ public class LobbyUI : NetworkBehaviour
     public GameObject lobbyPanel;
     public Button readyButton;
     public Button backButton;
-    public Button startButton; 
+    public Button startButton;
     public TMP_Text ReadyCount;
     public Image avatarImage;
     [SerializeField] private TMP_Text ipText;
     //public GameObject gameUI;
 
-    [SyncVar (hook = nameof(OnGameStarted))] bool gameStarted = false;
+    [SyncVar(hook = nameof(OnGameStarted))] bool gameStarted = false;
 
     void Awake()
     {
@@ -47,7 +46,7 @@ public class LobbyUI : NetworkBehaviour
 
     void OnReadyClicked()
     {
-        Player.localPlayer.SetReady(true); 
+        Player.localPlayer.SetReady(true);
         readyButton.interactable = false;
     }
 
@@ -74,7 +73,7 @@ public class LobbyUI : NetworkBehaviour
         }
         else
         {
-            ReadyCount.text ="Not all players are ready!";
+            ReadyCount.text = "Not all players are ready!";
         }
     }
 

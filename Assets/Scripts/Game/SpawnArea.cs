@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class SpawnArea : MonoBehaviour
 {
-    public static SpawnArea Instance; 
+    public static SpawnArea Instance;
     public Transform[] slots;
 
     private void Awake()
