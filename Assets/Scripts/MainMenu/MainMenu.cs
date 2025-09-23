@@ -11,6 +11,8 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private TMP_Text statusText;
     [SerializeField] private GameObject inputPanel;
     [SerializeField] private Image Slash;
+    [SerializeField] private GameObject GuidePanel;
+
 
     [SerializeField] private MyNetworkManager networkManager;
 
@@ -24,6 +26,7 @@ public class MainMenu : MonoBehaviour
         inputPanel.SetActive(false);
         statusText.text = "Welcome! \nChoose Start or Join.";
         Slash.enabled = false;
+        GuidePanel.SetActive(false);
     }
 
 
@@ -114,6 +117,16 @@ public class MainMenu : MonoBehaviour
             MusicManager.Instance.PlayMusic();
         }
         Slash.enabled = !MusicManager.Instance.IsMusicOn;
+    }
+
+    public void OnGuidButton()
+    {
+        GuidePanel.SetActive(true);
+    }
+
+    public void OnCloseGuide()
+    {
+        GuidePanel.SetActive(false);
     }
 }
 

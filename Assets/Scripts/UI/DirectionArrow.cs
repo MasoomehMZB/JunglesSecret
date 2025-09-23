@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class DirectionArrow : MonoBehaviour
 {
-    public Vector2Int direction;  // Set in Inspector or dynamically
+    public Vector2Int direction;  
     Button button;
 
     void Awake()
