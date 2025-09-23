@@ -258,6 +258,7 @@ public class Player : NetworkBehaviour
     public void TeleportRoutin()
     {
         InSpawnArea = false;
+        lastDir = Vector2Int.zero;
         ExitChestTile();
         FinishMovement();
     }
@@ -392,7 +393,7 @@ public class Player : NetworkBehaviour
         GameObject tempGO = Instantiate(waypointPrefab, bottomCenter, Quaternion.identity);
         Waypoint tempWaypoint = tempGO.GetComponent<Waypoint>();
 
-        //Debug.Log("inside HandleTempWaypoint");
+        Debug.Log($"inside HandleTempWaypoint{lastDir}");
 
         List<DirectionName> dirOptions = (lastDir == Vector2Int.up || lastDir == Vector2Int.down)
             ? new List<DirectionName> { DirectionName.Up, DirectionName.Down }
@@ -506,7 +507,7 @@ public class Player : NetworkBehaviour
     [Command]
     public void CmdSelectKey(uint keyNetId)
     {
-        //Debug.Log($"[Server] CmdSelectKey received from player {netId} for key {keyNetId}");
+        Debug.Log($"[Server] CmdSelectKey received from player {netId} for key {keyNetId}");
 
         if (!NetworkServer.spawned.TryGetValue(keyNetId, out NetworkIdentity keyIdentity) || keyIdentity == null)
         {

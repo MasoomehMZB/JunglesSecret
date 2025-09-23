@@ -441,7 +441,7 @@ public class GameManager : NetworkBehaviour
     #region Player / punishment (server only)
 
     [Server]
-    public void PunishPlayer(Player player, int? playerIndex = null)
+    public void PunishPlayer(Player player)
     {
         if (player.lastChestTile != null)
         {
@@ -450,7 +450,8 @@ public class GameManager : NetworkBehaviour
         }
 
         Debug.Log($"{player.name} was punished! Sent back to start.");
-        player.transform.position = SpawnArea.Instance.GetSpawnPosition(playerIndex);
+        int Index = player.characterIndex;
+        player.transform.position = SpawnArea.Instance.GetSpawnPosition(Index);
         player.InSpawnArea = true;
 
     }
