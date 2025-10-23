@@ -21,12 +21,10 @@ public class SpawnArea : MonoBehaviour
 
         if (playerIndex.HasValue)
         {
-            // Use the provided index
             index = Mathf.Clamp(playerIndex.Value, 0, slots.Length - 1);
         }
         else
         {
-            // Pick a random slot if no index passed
             index = Random.Range(0, slots.Length);
         }
 
